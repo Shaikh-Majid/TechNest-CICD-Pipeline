@@ -65,7 +65,7 @@ pipeline {
             }
         }
 
-        stage('Build') {
+ /*       stage('Build') {
             agent { label 'docker' }
             steps {
                 sh '''
@@ -78,7 +78,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'build/libs/**/*.jar', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'build/libs/*.jar', allowEmptyArchive: true
                 }
                 failure {
                     script { sendNotification("Build failed", "failure") }
@@ -120,7 +120,7 @@ pipeline {
             }
             post {
                 always {
-                    junit testResults: 'build/test-results/test/**/*.xml', allowEmptyResults: true
+                    junit testResults: 'build/test-results/test/*.xml', allowEmptyResults: true
                     publishHTML([
                         reportDir: 'build/reports/jacoco/test/html',
                         reportFiles: 'index.html',
@@ -281,7 +281,7 @@ pipeline {
 
     post {
         always {
-            cleanWs(deleteDirs: true, patterns: [[pattern: '**/target/**', type: 'INCLUDE']])
+            cleanWs(deleteDirs: true, patterns: [[pattern: 'target/**', type: 'INCLUDE']])
         }
         success {
             script { sendNotification("Pipeline completed successfully", "success") }
@@ -325,4 +325,4 @@ def sendNotification(String message, String status) {
     } catch (Exception e) {
         echo "Failed to send Slack notification: ${e.message}"
     }
-}
+}*/

@@ -54,7 +54,7 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            agent { label 'docker' }
+            agent any
             steps {
                 checkout([
                     $class: 'GitSCM',
@@ -327,3 +327,5 @@ def sendNotification(String message, String status) {
         echo "Failed to send Slack notification: ${e.message}"
     }
 }*/
+
+}

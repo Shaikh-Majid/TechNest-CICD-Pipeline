@@ -36,11 +36,11 @@ pipeline {
         DEPLOYMENT_TIMEOUT = '10m'
 
         SLACK_CHANNEL      = '#devops-pipelines'
-        SLACK_WEBHOOK      = credentials('slack-webhook-url')
+       // SLACK_WEBHOOK      = credentials('slack-webhook-url')
     }
 
     parameters {
-        string(name: 'GIT_BRANCH', defaultValue: 'main', description: 'Branch to build')
+        string(name: 'GIT_BRANCH', defaultValue: 'master', description: 'Branch to build')
         booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run unit tests')
         booleanParam(name: 'SKIP_SONARQUBE', defaultValue: false, description: 'Skip SonarQube scan')
         booleanParam(name: 'PUSH_DOCKER_IMAGE', defaultValue: true, description: 'Push Docker image to registry')

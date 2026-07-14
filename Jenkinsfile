@@ -12,9 +12,9 @@ pipeline {
 
     environment {
         PROJECT_NAME       = 'enterprise-microservice'
-        GIT_REPO           = 'https://github.com/organization/enterprise-microservice.git'
-        GIT_CREDENTIALS    = 'github-enterprise-creds'
-        GIT_BRANCH         = "${env.BRANCH_NAME ?: 'main'}"
+        GIT_REPO           = 'https://github.com/Shaikh-Majid/TechNest-CICD-Pipeline.git'
+        GIT_CREDENTIALS    = 'Github-Jenkins'
+        GIT_BRANCH         = "${env.BRANCH_NAME ?: 'master'}"
 
         SONARQUBE_SERVER   = 'devopsb39-sonarqube'
 

@@ -70,7 +70,6 @@ pipeline {
                         url: "${GIT_REPO_DEVEL}"
                 }
             }
-        }
                post {
                 always {
                            echo"Git Checkout Successfully"
@@ -79,7 +78,7 @@ pipeline {
                      echo"Failed the Checkout" 
                 }
             }
-
+        }
     }
 
  /*       stage('Build') {

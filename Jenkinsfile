@@ -71,6 +71,15 @@ pipeline {
                 }
             }
         }
+               post {
+                always {
+                           echo"Git Checkout Successfully"
+                }
+                failure {
+                     echo"Failed the Checkout" 
+                }
+            }
+
     }
 
  /*       stage('Build') {

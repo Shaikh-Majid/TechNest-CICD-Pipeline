@@ -11,10 +11,12 @@ pipeline {
     }
 
     environment {
-        PROJECT_NAME       = 'enterprise-microservice'
-        GIT_REPO           = 'https://github.com/Shaikh-Majid/TechNest-CICD-Pipeline.git'
-        GIT_CREDENTIALS    = 'Github-Jenkins'
-        GIT_BRANCH         = "${env.BRANCH_NAME ?: 'master'}"
+        PROJECT_NAME         = 'enterprise-microservice'
+        GIT_REPO_CICD        = 'https://github.com/Shaikh-Majid/TechNest-CICD-Pipeline.git'
+        GIT_REPO_DEVEL       = 'https://github.com/Shaikh-Majid/GitPractices.git'
+        GIT_CREDENTIALS_CICD =  'Github-Jenkins'
+        GIT_CREDENTIALS_DEVEL = 'Github-Jenkins'
+        GIT_BRANCH            = "${env.BRANCH_NAME ?: 'master'}"
 
         SONARQUBE_SERVER   = 'devopsb39-sonarqube'
 
@@ -40,7 +42,8 @@ pipeline {
     }
 
     parameters {
-        string(name: 'GIT_BRANCH', defaultValue: 'master', description: 'Branch to build')
+        string(name: 'GIT_BRANCH',    defaultValue: 'master', description: 'Application repo branch')
+        string(name: 'DEVEL_BRANCH',  defaultValue: 'main',   description: 'Infrastructure repo branch')
         booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run unit tests')
         booleanParam(name: 'SKIP_SONARQUBE', defaultValue: false, description: 'Skip SonarQube scan')
         booleanParam(name: 'PUSH_DOCKER_IMAGE', defaultValue: true, description: 'Push Docker image to registry')
@@ -55,16 +58,112 @@ pipeline {
     stages {
         stage('Checkout') {
             agent any
+            options {
+                timeout(time: 15, unit: 'MINUTES')
+            }
             steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: "${GIT_BRANCH}"]],
-                    userRemoteConfigs: [[url: "${GIT_REPO}", credentialsId: "${GIT_CREDENTIALS}"]],
-                    extensions: [[$class: 'CloneOption', depth: 50]]
-                ])
+                script {
+                    // ── Repo manifest ────────────────────────────────────────────
+                    def repos = [
+                        [
+                            name         : 'app',
+                            url          : "${GIT_REPO_CICD}",
+                            credentialsId: "${GIT_CREDENTIALS_CICD}",
+                            branch       : "${params.GIT_BRANCH    ?: env.GIT_BRANCH}",
+                            dir          : 'src/cicd',
+                            depth        : 50
+                        ],
+                        [
+                            name         : 'infra',
+                            url          : "${GIT_REPO_DEVEL}",
+                            credentialsId: "${GIT_CREDENTIALS_DEVEL}",
+                            branch       : "${params.INFRA_BRANCH  ?: 'main'}",
+                            dir          : 'src/app',
+                            depth        : 1
+                        ]
+                    ]
+
+                    // ── Build parallel closures ───────────────────────────────────
+                    def checkoutTasks = repos.collectEntries { repo ->
+                        ["Checkout → ${repo.name}": {
+                            retry(3) {
+                                timeout(time: 5, unit: 'MINUTES') {
+                                    dir(repo.dir) {
+                                        checkout([
+                                            $class: 'GitSCM',
+                                            branches: [[name: repo.branch]],
+                                            userRemoteConfigs: [[
+                                                url          : repo.url,
+                                                credentialsId: repo.credentialsId
+                                            ]],
+                                            extensions: [
+                                                [$class: 'CloneOption',
+                                                    depth  : repo.depth,
+                                                    shallow: true,
+                                                    noTags : false,
+                                                    timeout: 5
+                                                ],
+                                                [$class: 'CleanBeforeCheckout',
+                                                    deleteUntrackedNestedRepositories: true
+                                                ],
+                                                [$class: 'PruneStaleBranch'],
+                                                [$class: 'CheckoutOption', timeout: 5]
+                                            ]
+                                        ])
+
+                                        // Capture commit metadata
+                                        def commitHash    = sh(script: 'git rev-parse --short HEAD',           returnStdout: true).trim()
+                                        def commitFull    = sh(script: 'git rev-parse HEAD',                   returnStdout: true).trim()
+                                        def commitAuthor  = sh(script: 'git log -1 --pretty="%an <%ae>"',      returnStdout: true).trim()
+                                        def commitMessage = sh(script: 'git log -1 --pretty=%s',               returnStdout: true).trim()
+                                        def commitDate    = sh(script: 'git log -1 --pretty=%ci',              returnStdout: true).trim()
+
+                                        echo """
+[${repo.name.toUpperCase()}] Checkout complete
+  Branch  : ${repo.branch}
+  Commit  : ${commitHash} (${commitFull})
+  Author  : ${commitAuthor}
+  Message : ${commitMessage}
+  Date    : ${commitDate}
+  Dir     : ${repo.dir}
+"""
+                                        // Expose commit hashes as env vars for downstream stages
+                                        env["COMMIT_HASH_${repo.name.toUpperCase()}"] = commitHash
+                                        env["COMMIT_FULL_${repo.name.toUpperCase()}"] = commitFull
+
+                                        // Stash for downstream stages running on different agents
+                                        stash name: "repo-${repo.name}", includes: '**/*', allowEmpty: false
+                                    }
+                                }
+                            }
+                        }]
+                    }
+
+                    // ── Run all checkouts in parallel ─────────────────────────────
+                    parallel checkoutTasks
+
+                    // ── Summary banner ────────────────────────────────────────────
+                    echo """
+╬═══════════════════════════════════════════════════════╬
+   MULTI-REPO CHECKOUT COMPLETE
+   app    → ${env.COMMIT_HASH_APP}
+   infra  → ${env.COMMIT_HASH_INFRA}
+   config → ${env.COMMIT_HASH_CONFIG}
+╬═══════════════════════════════════════════════════════╬
+"""
+                }
+            }
+            post {
+                success {
+                    echo "All repositories checked out successfully"
+                }
+                failure {
+                    echo "One or more repository checkouts failed — see parallel branch logs above"
+                    // sendNotification("Multi-repo checkout failed", "failure")
+                }
             }
         }
-}
+    }
 
  /*       stage('Build') {
             agent { label 'docker' }

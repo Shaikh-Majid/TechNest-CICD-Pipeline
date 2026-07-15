@@ -119,10 +119,6 @@ pipeline {
                                     }
                                 }
                             }
-                       
-                    }
-
- }
 
                     // ── Run all checkouts in parallel ─────────────────────────────
                     parallel checkoutTasks

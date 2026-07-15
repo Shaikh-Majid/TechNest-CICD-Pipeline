@@ -58,85 +58,16 @@ pipeline {
     stages {
         stage('Checkout') {
             agent any
-            options {
-                timeout(time: 15, unit: 'MINUTES')
-            }
             steps {
-                script {
-                    // ── Repo manifest ────────────────────────────────────────────
-                    def repos = [
-                        [
-                            name         : 'cicd',
-                            url          : "${GIT_REPO_CICD}",
-                            credentialsId: "${GIT_CREDENTIALS_CICD}",
-                            branch       : "${params.GIT_BRANCH    ?: env.GIT_BRANCH}",
-                            dir          : 'src/cicd',
-                            depth        : 50
-                        ],
-                        [
-                            name         : 'devel',
-                            url          : "${GIT_REPO_DEVEL}",
-                            credentialsId: "${GIT_CREDENTIALS_DEVEL}",
-                            branch       : "${params.DEVEL_BRANCH  ?: 'main'}",
-                            dir          : 'src/app',
-                            depth        : 1
-                        ]
-                    ]
-
-                    // ── Build parallel closures ───────────────────────────────────
-                                    dir(repo.dir) {
-                                        checkout([
-                                            $class: 'GitSCM',
-                                            branches: [[name: repo.branch]],
-                                            userRemoteConfigs: [[
-                                                url          : repo.url,
-                                                credentialsId: repo.credentialsId
-                                            ]]
-                                        ])
-
-                                        // Capture commit metadata
-                                        def commitHash    = sh(script: 'git rev-parse --short HEAD',           returnStdout: true).trim()
-                                        def commitFull    = sh(script: 'git rev-parse HEAD',                   returnStdout: true).trim()
-                                        def commitAuthor  = sh(script: 'git log -1 --pretty="%an <%ae>"',      returnStdout: true).trim()
-                                        def commitMessage = sh(script: 'git log -1 --pretty=%s',               returnStdout: true).trim()
-                                        def commitDate    = sh(script: 'git log -1 --pretty=%ci',              returnStdout: true).trim()
-
-                                        echo """
-[${repo.name.toUpperCase()}] Checkout complete
-  Branch  : ${repo.branch}
-  Commit  : ${commitHash} (${commitFull})
-  Author  : ${commitAuthor}
-  Message : ${commitMessage}
-  Date    : ${commitDate}
-  Dir     : ${repo.dir}
-"""
-                                        // Expose commit hashes as env vars for downstream stages
-                                        env["COMMIT_HASH_${repo.name.toUpperCase()}"] = commitHash
-                                        env["COMMIT_FULL_${repo.name.toUpperCase()}"] = commitFull
-
-                                        // Stash for downstream stages running on different agents
-                                        stash name: "repo-${repo.name}", includes: '**/*', allowEmpty: false
-                                    }
-                                }
-                            }
-
-
-                    // ── Summary banner ────────────────────────────────────────────
-                    echo """
-╬═══════════════════════════════════════════════════════╬
-   MULTI-REPO CHECKOUT COMPLETE
-   app    → ${env.COMMIT_HASH_APP}
-   infra  → ${env.COMMIT_HASH_INFRA}
-   config → ${env.COMMIT_HASH_CONFIG}
-╬═══════════════════════════════════════════════════════╬
-"""
-            post {
-                success {
-                    echo "All repositories checked out successfully"
+                dir('src/cicd') {
+                    git branch: "${params.GIT_BRANCH ?: 'master'}",
+                        credentialsId: "${GIT_CREDENTIALS_CICD}",
+                        url: "${GIT_REPO_CICD}"
                 }
-                failure {
-                    echo "One or more repository checkouts failed — see parallel branch logs above"
-                    // sendNotification("Multi-repo checkout failed", "failure")
+                dir('src/app') {
+                    git branch: "${params.DEVEL_BRANCH ?: 'main'}",
+                        credentialsId: "${GIT_CREDENTIALS_DEVEL}",
+                        url: "${GIT_REPO_DEVEL}"
                 }
             }
         }

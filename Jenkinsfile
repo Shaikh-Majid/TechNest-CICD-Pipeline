@@ -66,7 +66,7 @@ pipeline {
                     // ── Repo manifest ────────────────────────────────────────────
                     def repos = [
                         [
-                            name         : 'app',
+                            name         : 'cicd',
                             url          : "${GIT_REPO_CICD}",
                             credentialsId: "${GIT_CREDENTIALS_CICD}",
                             branch       : "${params.GIT_BRANCH    ?: env.GIT_BRANCH}",
@@ -74,20 +74,16 @@ pipeline {
                             depth        : 50
                         ],
                         [
-                            name         : 'infra',
+                            name         : 'devel',
                             url          : "${GIT_REPO_DEVEL}",
                             credentialsId: "${GIT_CREDENTIALS_DEVEL}",
-                            branch       : "${params.INFRA_BRANCH  ?: 'main'}",
+                            branch       : "${params.DEVEL_BRANCH  ?: 'main'}",
                             dir          : 'src/app',
                             depth        : 1
                         ]
                     ]
 
                     // ── Build parallel closures ───────────────────────────────────
-                    def checkoutTasks = repos.collectEntries { repo ->
-                        ["Checkout → ${repo.name}": {
-                            retry(3) {
-                                timeout(time: 5, unit: 'MINUTES') {
                                     dir(repo.dir) {
                                         checkout([
                                             $class: 'GitSCM',
@@ -95,20 +91,7 @@ pipeline {
                                             userRemoteConfigs: [[
                                                 url          : repo.url,
                                                 credentialsId: repo.credentialsId
-                                            ]],
-                                            extensions: [
-                                                [$class: 'CloneOption',
-                                                    depth  : repo.depth,
-                                                    shallow: true,
-                                                    noTags : false,
-                                                    timeout: 5
-                                                ],
-                                                [$class: 'CleanBeforeCheckout',
-                                                    deleteUntrackedNestedRepositories: true
-                                                ],
-                                                [$class: 'PruneStaleBranch'],
-                                                [$class: 'CheckoutOption', timeout: 5]
-                                            ]
+                                            ]]
                                         ])
 
                                         // Capture commit metadata
@@ -136,8 +119,10 @@ pipeline {
                                     }
                                 }
                             }
-                        }]
+                       
                     }
+
+ }
 
                     // ── Run all checkouts in parallel ─────────────────────────────
                     parallel checkoutTasks

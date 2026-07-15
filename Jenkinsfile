@@ -132,8 +132,6 @@ pipeline {
    config → ${env.COMMIT_HASH_CONFIG}
 ╬═══════════════════════════════════════════════════════╬
 """
-                }
-            }
             post {
                 success {
                     echo "All repositories checked out successfully"

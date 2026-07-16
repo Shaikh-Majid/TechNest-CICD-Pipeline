@@ -342,7 +342,8 @@ def sendNotification(String message, String status) {
     } catch (Exception e) {
         echo "Failed to send Slack notification: ${e.message}"
     }
-}*/
+ }*/
+}
 def sendNotification(String message, String status) {
     emailext(
         subject: "[${status}] Jenkins Build - ${env.JOB_NAME}",
@@ -357,5 +358,4 @@ def sendNotification(String message, String status) {
         """,
         to: "ms5038248@gmail.com"
     )
-}
 }

@@ -71,11 +71,12 @@ pipeline {
                 }
             }
                post {
-                always {
-                           echo"Git Checkout Successfully"
-                }
-                failure {
-                     echo"Failed the Checkout" 
+                success {
+                    script { sendNotification("Git Successfully Checkout the Repo", "success")}
+
+                        }
+                 failure {
+                    script { sendNotification("Git Checkout failed", "failure") }
                 }
             }
         }
@@ -342,5 +343,19 @@ def sendNotification(String message, String status) {
         echo "Failed to send Slack notification: ${e.message}"
     }
 }*/
+def sendNotification(String message, String status) {
+    emailext(
+        subject: "[${status}] Jenkins Build - ${env.JOB_NAME}",
+        body: """
+        Job: ${env.JOB_NAME}
+        Build: ${env.BUILD_NUMBER}
+        Status: ${status}
 
+        ${message}
+
+        URL: ${env.BUILD_URL}
+        """,
+        to: "ms5038248@gmail.com"
+    )
+}
 }

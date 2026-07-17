@@ -346,16 +346,30 @@ def sendNotification(String message, String status) {
 }
 def sendNotification(String message, String status) {
     emailext(
-        subject: "[${status}] Jenkins Build - ${env.JOB_NAME}",
-        body: """
-        Job: ${env.JOB_NAME}
-        Build: ${env.BUILD_NUMBER}
-        Status: ${status}
+  subject: "${status}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+  body: """
+ <html>
+<body>
+<h1>${message}<h1>
+<h2>Build $BUILD_STATUS: $PROJECT_NAME #$BUILD_NUMBER</h2>
 
-        ${message}
+<p><b>Job Name:</b> $PROJECT_NAME</p>
+<p><b>Build Number:</b> $BUILD_NUMBER</p>
+<p><b>Build Status:</b> $BUILD_STATUS</p>
+<p><b>Build URL:</b> <a href="$BUILD_URL">$BUILD_URL</a></p>
+<p><b>Console Output:</b> <a href="$BUILD_URL/console">View Console</a></p>
 
-        URL: ${env.BUILD_URL}
-        """,
-        to: "ms5038248@gmail.com"
+<h3>Changes:</h3>
+<p>$CHANGES</p>
+
+<h3>Console Output (last 100 lines):</h3>
+<pre>\${BUILD_LOG, maxLines=100}</pre>
+
+</body>
+</html>
+""",
+        to: "ms5038248@gmail.com",
+        mimeType: 'text/html',
+        attachLog: true
     )
 }

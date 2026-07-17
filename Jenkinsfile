@@ -253,114 +253,114 @@ pipeline {
                 }
                 sh '''
                     kubectl create namespace ${TARGET_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-                    envsubst < k8s/serviceaccount.yaml | kubectl apply -f -
-                    envsubst < k8s/deployment.yaml | kubectl apply -f -
-                    kubectl rollout status deployment/${PROJECT_NAME} \
-                        -n ${TARGET_NAMESPACE} --timeout=${DEPLOYMENT_TIMEOUT}
-                '''
-            }
-            post {
-                failure {
-                    script {
-                        sendNotification("Kubernetes deployment failed", "failure")
-                        sh 'kubectl rollout undo deployment/${PROJECT_NAME} -n ${TARGET_NAMESPACE} || true'
-                    }
-                }
-            }
-        }
-
-        stage('Smoke Tests') {
-            agent { label 'docker' }
-            when { expression { params.DEPLOY_ENV != 'NONE' } }
-            steps {
-                sh '''
-                    SERVICE_IP=$(kubectl get svc ${PROJECT_NAME} -n ${TARGET_NAMESPACE} \
-                        -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "127.0.0.1")
-                    SERVICE_PORT=$(kubectl get svc ${PROJECT_NAME} -n ${TARGET_NAMESPACE} \
-                        -o jsonpath='{.spec.ports[0].port}')
-
-                    for i in {1..10}; do
-                        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-                            "http://${SERVICE_IP}:${SERVICE_PORT}/actuator/health" || echo "000")
-                        [ "$HTTP_CODE" = "200" ] && echo "Health check passed" && break
-                        echo "Waiting for service (attempt $i/10)..."
-                        sleep 10
-                    done
-                '''
-            }
-            post {
-                failure {
-                    script { sendNotification("Smoke tests failed", "failure") }
-                }
-            }
-        }
+	    envsubst < k8s/serviceaccount.yaml | kubectl apply -f -
+	    envsubst < k8s/deployment.yaml | kubectl apply -f -
+	    kubectl rollout status deployment/${PROJECT_NAME} \
+		-n ${TARGET_NAMESPACE} --timeout=${DEPLOYMENT_TIMEOUT}
+	'''
     }
-
     post {
-        always {
-            cleanWs(deleteDirs: true, patterns: [[pattern: 'target/**', type: 'INCLUDE']])
-        }
-        success {
-            script { sendNotification("Pipeline completed successfully", "success") }
-        }
-        failure {
-            script { sendNotification("Pipeline failed - check logs", "failure") }
-        }
-        unstable {
-            script { sendNotification("Pipeline unstable - review quality gates", "warning") }
-        }
-        cleanup {
-            sh 'docker system prune -f || true'
-        }
+	failure {
+	    script {
+		sendNotification("Kubernetes deployment failed", "failure")
+		sh 'kubectl rollout undo deployment/${PROJECT_NAME} -n ${TARGET_NAMESPACE} || true'
+	    }
+	}
     }
 }
 
-def sendNotification(String message, String status) {
-    if (!env.SLACK_WEBHOOK) return
-    def color = status == 'success' ? 'good' : status == 'failure' ? 'danger' : 'warning'
-    def payload = [
-        channel: env.SLACK_CHANNEL,
-        username: 'Jenkins Pipeline Bot',
-        attachments: [[
-            color: color,
-            title: "${env.PROJECT_NAME} - Build #${env.BUILD_NUMBER}",
-            text: message,
-            fields: [
-                [title: 'Branch', value: env.GIT_BRANCH, short: true],
-                [title: 'Environment', value: env.DEPLOY_ENV ?: 'N/A', short: true]
-            ]
-        ]]
-    ]
-    try {
-        httpRequest(
-            acceptType: 'APPLICATION_JSON',
-            contentType: 'APPLICATION_JSON',
-            httpMode: 'POST',
-            url: env.SLACK_WEBHOOK,
-            requestBody: groovy.json.JsonOutput.toJson(payload)
-        )
-    } catch (Exception e) {
-        echo "Failed to send Slack notification: ${e.message}"
+stage('Smoke Tests') {
+    agent { label 'docker' }
+    when { expression { params.DEPLOY_ENV != 'NONE' } }
+    steps {
+	sh '''
+	    SERVICE_IP=$(kubectl get svc ${PROJECT_NAME} -n ${TARGET_NAMESPACE} \
+		-o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "127.0.0.1")
+	    SERVICE_PORT=$(kubectl get svc ${PROJECT_NAME} -n ${TARGET_NAMESPACE} \
+		-o jsonpath='{.spec.ports[0].port}')
+
+	    for i in {1..10}; do
+		HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+		    "http://${SERVICE_IP}:${SERVICE_PORT}/actuator/health" || echo "000")
+		[ "$HTTP_CODE" = "200" ] && echo "Health check passed" && break
+		echo "Waiting for service (attempt $i/10)..."
+		sleep 10
+	    done
+	'''
     }
- }*/
+    post {
+	failure {
+	    script { sendNotification("Smoke tests failed", "failure") }
+	}
+    }
+}
+}
+
+post {
+always {
+    cleanWs(deleteDirs: true, patterns: [[pattern: 'target/**', type: 'INCLUDE']])
+}
+success {
+    script { sendNotification("Pipeline completed successfully", "success") }
+}
+failure {
+    script { sendNotification("Pipeline failed - check logs", "failure") }
+}
+unstable {
+    script { sendNotification("Pipeline unstable - review quality gates", "warning") }
+}
+cleanup {
+    sh 'docker system prune -f || true'
+}
+}
+}
+
+def sendNotification(String message, String status) {
+if (!env.SLACK_WEBHOOK) return
+def color = status == 'success' ? 'good' : status == 'failure' ? 'danger' : 'warning'
+def payload = [
+channel: env.SLACK_CHANNEL,
+username: 'Jenkins Pipeline Bot',
+attachments: [[
+    color: color,
+    title: "${env.PROJECT_NAME} - Build #${env.BUILD_NUMBER}",
+    text: message,
+    fields: [
+	[title: 'Branch', value: env.GIT_BRANCH, short: true],
+	[title: 'Environment', value: env.DEPLOY_ENV ?: 'N/A', short: true]
+    ]
+]]
+]
+try {
+httpRequest(
+    acceptType: 'APPLICATION_JSON',
+    contentType: 'APPLICATION_JSON',
+    httpMode: 'POST',
+    url: env.SLACK_WEBHOOK,
+    requestBody: groovy.json.JsonOutput.toJson(payload)
+)
+} catch (Exception e) {
+echo "Failed to send Slack notification: ${e.message}"
+}
+}*/
 }
 def sendNotification(String message, String status) {
-    emailext(
-  subject: "${status}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-  body: """
- <html>
+emailext(
+subject: "${status}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+body: """
+<html>
 <body>
 <h1>${message}<h1>
-<h2>Build $BUILD_STATUS: $PROJECT_NAME #$BUILD_NUMBER</h2>
+<h2>Build:${currentBuild.currentResult}: ${env.JOB_NAME} #${env.BUILD_NUMBER} </h2>
 
-<p><b>Job Name:</b> $PROJECT_NAME</p>
-<p><b>Build Number:</b> $BUILD_NUMBER</p>
-<p><b>Build Status:</b> $BUILD_STATUS</p>
-<p><b>Build URL:</b> <a href="$BUILD_URL">$BUILD_URL</a></p>
-<p><b>Console Output:</b> <a href="$BUILD_URL/console">View Console</a></p>
+<p><b>Job Name:</b>${env.JOB_NAME}</p>
+<p><b>Build Number:</b>${env.BUILD_NUMBER}</p>
+<p><b>Build Status:</b> ${env.currentBuild.currentResult}</p>
+<p><b>Build URL:</b> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
+<p><b>Console Output:</b> <a href="${env.BUILD_URL}/console">View Console</a></p>
 
 <h3>Changes:</h3>
-<p>$CHANGES</p>
+<p>\${CHANGES}</p>
 
 <h3>Console Output (last 100 lines):</h3>
 <pre>\${BUILD_LOG, maxLines=100}</pre>

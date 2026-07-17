@@ -351,11 +351,10 @@ body: """
 <html>
 <body>
 <h1>${message}<h1>
-<h2>Build:${currentBuild.currentResult}: ${env.JOB_NAME} #${env.BUILD_NUMBER} </h2>
+/*<h2>${env.JOB_NAME} #${env.BUILD_NUMBER} </h2>
 
 <p><b>Job Name:</b>${env.JOB_NAME}</p>
 <p><b>Build Number:</b>${env.BUILD_NUMBER}</p>
-<p><b>Build Status:</b> ${env.currentBuild.currentResult}</p>
 <p><b>Build URL:</b> <a href="${env.BUILD_URL}">${env.BUILD_URL}</a></p>
 <p><b>Console Output:</b> <a href="${env.BUILD_URL}/console">View Console</a></p>
 

@@ -87,12 +87,13 @@ pipeline {
     stages {
         stage('Clean Workspace & Checkout') {
             agent any
+            steps {
                 cleanWs(
                     deleteDirs: true,
                     disableDeferredWipeout: true,
                     notFailBuild: true
                 )
-              
+
                 dir('src/cicd') {
                     git branch: "${params.GIT_BRANCH ?: 'master'}",
                         credentialsId: "${GIT_CREDENTIALS_CICD}",
@@ -106,18 +107,16 @@ pipeline {
             }
             post {
                 success {
-                    script { sendNotification("Git Successfully Checkout the Repo", "success")}
-
-                    }
+                    script { sendNotification("Git Successfully Checkout the Repo", "success") }
+                }
                 failure {
                     script { sendNotification("Git Checkout failed", "failure") }
-
                 }
-            
-            }   
- 
+            }
+        }
 
-       stage('Install Dependencies') {
+        stage('Install Dependencies') {
+            agent any
             steps {
                 script {
                     withCredentials([string(credentialsId: 'nexus-npm-token', variable: 'NPM_TOKEN')]) {
@@ -127,7 +126,7 @@ pipeline {
                             set -eu
                             cat > .npmrc <<'EOF'
               registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
-              always-auth=tr ue
+              always-auth=true
               EOF
                             echo "//nexus.technest.internal/repository/${NEXUS_NPM_REPO}/:_authToken=${NPM_TOKEN}" >> .npmrc
                         '''
@@ -139,15 +138,16 @@ pipeline {
                     }
                 }
             }
-        }
             post {
                 always {
                     // The token lives in this file. Remove it the moment we are
                     // done, so it cannot leak via archiveArtifacts or a shell.
                     sh 'rm -f .npmrc'
                 }
-    }       
-}
+            }
+        }
+    }
+
 /*def sendNotification(String message, String status) {
 if (!env.SLACK_WEBHOOK) return
 def color = status == 'success' ? 'good' : status == 'failure' ? 'danger' : 'warning'

@@ -87,14 +87,11 @@ environment {
     stages {
         stage('Clean Workspace & Checkout') {
             agent any
-               steps {
                 cleanWs(
                     deleteDirs: true,
                     disableDeferredWipeout: true,
                     notFailBuild: true
                 )
-               }
-            steps {
               
                 dir('src/cicd') {
                     git branch: "${params.GIT_BRANCH ?: 'master'}",

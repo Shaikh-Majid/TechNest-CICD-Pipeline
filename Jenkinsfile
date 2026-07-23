@@ -10,7 +10,7 @@ pipeline {
         disableConcurrentBuilds()
     }
 
-environment {
+    environment {
 
        //----------------------GitHub-------------------------------------
         PROJECT_NAME         = 'enterprise-microservice'
@@ -104,15 +104,17 @@ environment {
                         url: "${GIT_REPO_DEVEL}"
                 }
             }
-               post {
+            post {
                 success {
                     script { sendNotification("Git Successfully Checkout the Repo", "success")}
 
-                        }
-                 failure {
+                    }
+                failure {
                     script { sendNotification("Git Checkout failed", "failure") }
+
                 }
-            }
+            
+            }   
  
 
        stage('Install Dependencies') {
@@ -137,16 +139,15 @@ environment {
                     }
                 }
             }
-         }
+        }
             post {
                 always {
                     // The token lives in this file. Remove it the moment we are
                     // done, so it cannot leak via archiveArtifacts or a shell.
                     sh 'rm -f .npmrc'
                 }
-            }
-       }
-
+    }       
+}
 /*def sendNotification(String message, String status) {
 if (!env.SLACK_WEBHOOK) return
 def color = status == 'success' ? 'good' : status == 'failure' ? 'danger' : 'warning'
@@ -173,8 +174,9 @@ httpRequest(
 )
 } catch (Exception e) {
 echo "Failed to send Slack notification: ${e.message}"
-}
-}*/
+  }
+  }*/
+
 }
 def sendNotification(String message, String status) {
 emailext(

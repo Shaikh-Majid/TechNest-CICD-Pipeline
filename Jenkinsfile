@@ -25,16 +25,16 @@ pipeline {
         APP_VERSION         = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
 
         // ---- AWS / ECR -------------------------------------------------------
-        AWS_REGION          = 'ap-south-1'
-        AWS_ACCOUNT_ID      = credentials('aws-account-id')
-        ECR_REGISTRY        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-        ECR_REPO            = "${ECR_REGISTRY}/${APP_NAME}"
+        //AWS_REGION          = 'ap-south-1'
+        //AWS_ACCOUNT_ID      = credentials('aws-account-id')
+        //ECR_REGISTRY        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        //ECR_REPO            = "${ECR_REGISTRY}/${APP_NAME}"
 
         // ---- Immutable image tag --------------------------------------------
         // <semver>-<build>-<sha>. Immutable by construction: no 'latest', ever.
         // A mutable tag plus imagePullPolicy:IfNotPresent means nodes silently
         // serve stale images and you cannot reason about what is running.
-        GIT_SHA_SHORT       = sh(script: 'git rev-parse --short=8 HEAD', returnStdout: true).trim()
+        //GIT_SHA_SHORT       = sh(script: 'git rev-parse --short=8 HEAD', returnStdout: true).trim()
         IMAGE_TAG           = "${APP_VERSION}-${BUILD_NUMBER}-${GIT_SHA_SHORT}"
         IMAGE_FULL          = "${ECR_REPO}:${IMAGE_TAG}"
 
@@ -194,7 +194,6 @@ body: """
 
 <h3>Changes:</h3>
 <p>\${CHANGES}</p>
-
 <h3>Console Output (last 100 lines):</h3>
 <pre>\${BUILD_LOG, maxLines=100}</pre>
 

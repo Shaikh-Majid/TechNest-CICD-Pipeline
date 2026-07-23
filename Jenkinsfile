@@ -113,10 +113,9 @@ environment {
                     script { sendNotification("Git Checkout failed", "failure") }
                 }
             }
-        }
-    }
+ 
 
-stage('Install Dependencies') {
+       stage('Install Dependencies') {
             steps {
                 script {
                     withCredentials([string(credentialsId: 'nexus-npm-token', variable: 'NPM_TOKEN')]) {

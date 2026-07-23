@@ -1,7 +1,9 @@
 #!/usr/bin/env groovy
 
 pipeline {
-    agent any
+    agent {
+           label 'master_node'
+          }
 
     options {
         buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '10'))
@@ -86,7 +88,7 @@ pipeline {
 
     stages {
         stage('Clean Workspace & Checkout') {
-            agent any
+            agent { label 'master_node' }
             steps {
                 cleanWs(
                     deleteDirs: true,
@@ -116,7 +118,7 @@ pipeline {
         }
 
         stage('Install Dependencies') {
-            agent any
+          agent { label 'master_node' }
             steps {
                 script {
                     withCredentials([string(credentialsId: 'nexus-npm-token', variable: 'NPM_TOKEN')]) {

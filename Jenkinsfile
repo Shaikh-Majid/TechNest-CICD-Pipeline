@@ -124,9 +124,9 @@ environment {
                         sh '''
                             set -eu
                             cat > .npmrc <<'EOF'
-registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
-always-auth=true
-EOF
+              registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
+              always-auth=tr ue
+              EOF
                             echo "//nexus.technest.internal/repository/${NEXUS_NPM_REPO}/:_authToken=${NPM_TOKEN}" >> .npmrc
                         '''
                         retry(2) {
@@ -137,6 +137,7 @@ EOF
                     }
                 }
             }
+         }
             post {
                 always {
                     // The token lives in this file. Remove it the moment we are
@@ -144,220 +145,9 @@ EOF
                     sh 'rm -f .npmrc'
                 }
             }
-        }
-       /* stage('Nexus Upload') {
-            agent { label 'docker' }
-            when { expression { params.UPLOAD_TO_NEXUS } }
-            steps {
-                script {
-                    def artifactPath = sh(script: 'find build/libs -name "*.jar" | head -1', returnStdout: true).trim()
-                    nexusArtifactUploader(
-                        nexusVersion: 'nexus3',
-                        protocol: 'https',
-                        nexusUrl: "${NEXUS_URL}",
-                        groupId: 'com.company.enterprise',
-                        version: "${BUILD_NUMBER}",
-                        repository: "${NEXUS_REPOSITORY}",
-                        credentialsId: "${NEXUS_CREDENTIALS}",
-                        artifacts: [[artifactId: "${PROJECT_NAME}", classifier: '', file: artifactPath, type: 'jar']]
-                    )
-                }
-            }
-            post {
-                failure {
-                    script { sendNotification("Nexus upload failed", "failure") }
-                }
-            }
-        }
+       }
 
-        stage('Test') {
-            agent { label 'docker' }
-            when { expression { params.RUN_TESTS } }
-            steps {
-                sh './gradlew test --parallel'
-                sh './gradlew jacocoTestReport || true'
-            }
-            post {
-                always {
-                    junit testResults: 'build/test-results/test/*.xml', allowEmptyResults: true
-                    publishHTML([
-                        reportDir: 'build/reports/jacoco/test/html',
-                        reportFiles: 'index.html',
-                        reportName: 'JaCoCo Coverage',
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true
-                    ])
-                }
-                failure {
-                    script { sendNotification("Tests failed", "failure") }
-                }
-            }
-        }
-
-        stage('SonarQube') {
-            agent { label 'docker' }
-            when { expression { !params.SKIP_SONARQUBE } }
-            steps {
-                withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                    sh './gradlew sonarqube -Dsonar.branch.name=${GIT_BRANCH}'
-                }
-                timeout(time: 10, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-            post {
-                failure {
-                    script { sendNotification("SonarQube quality gate failed", "failure") }
-                }
-            }
-        }
-
-        stage('Docker Build & Push') {
-            agent {
-                kubernetes {
-                    yaml '''
-                        apiVersion: v1
-                        kind: Pod
-                        spec:
-                          serviceAccountName: jenkins
-                          containers:
-                          - name: docker
-                            image: docker:24.0-dind
-                            securityContext:
-                              privileged: true
-                            volumeMounts:
-                            - name: docker-sock
-                              mountPath: /var/run/docker.sock
-                          volumes:
-                          - name: docker-sock
-                            hostPath:
-                              path: /var/run/docker.sock
-                    '''
-                }
-            }
-            steps {
-                sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG} -t ${DOCKER_IMAGE}:latest ."
-                script {
-                    if (params.PUSH_DOCKER_IMAGE) {
-                        withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS}",
-                            usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                            sh '''
-                                echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin ${DOCKER_REGISTRY}
-                                docker push ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
-                                docker push ${DOCKER_IMAGE}:latest
-                                docker logout ${DOCKER_REGISTRY}
-                            '''
-                        }
-                    }
-                }
-            }
-            post {
-                failure {
-                    script { sendNotification("Docker build/push failed", "failure") }
-                }
-            }
-        }
-
-        stage('Deploy to Kubernetes') {
-            agent {
-                kubernetes {
-                    yaml '''
-                        apiVersion: v1
-                        kind: Pod
-                        spec:
-                          serviceAccountName: jenkins
-                          containers:
-                          - name: kubectl
-                            image: bitnami/kubectl:1.28
-                            command: [cat]
-                            tty: true
-                    '''
-                }
-            }
-            when { expression { params.DEPLOY_ENV != 'NONE' } }
-            steps {
-                script {
-                    switch (params.DEPLOY_ENV) {
-                        case 'DEV':
-                            env.TARGET_NAMESPACE = K8S_NAMESPACE_DEV
-                            env.REPLICAS = REPLICAS_DEV
-                            break
-                        case 'STAGING':
-                            env.TARGET_NAMESPACE = K8S_NAMESPACE_STAGING
-                            env.REPLICAS = REPLICAS_STAGING
-                            break
-                        case 'PRODUCTION':
-                            env.TARGET_NAMESPACE = K8S_NAMESPACE_PROD
-                            env.REPLICAS = REPLICAS_PROD
-                            break
-                    }
-                }
-                sh '''
-                    kubectl create namespace ${TARGET_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-	    envsubst < k8s/serviceaccount.yaml | kubectl apply -f -
-	    envsubst < k8s/deployment.yaml | kubectl apply -f -
-	    kubectl rollout status deployment/${PROJECT_NAME} \
-		-n ${TARGET_NAMESPACE} --timeout=${DEPLOYMENT_TIMEOUT}
-	'''
-    }
-    post {
-	failure {
-	    script {
-		sendNotification("Kubernetes deployment failed", "failure")
-		sh 'kubectl rollout undo deployment/${PROJECT_NAME} -n ${TARGET_NAMESPACE} || true'
-	    }
-	}
-    }
-}
-
-stage('Smoke Tests') {
-    agent { label 'docker' }
-    when { expression { params.DEPLOY_ENV != 'NONE' } }
-    steps {
-	sh '''
-	    SERVICE_IP=$(kubectl get svc ${PROJECT_NAME} -n ${TARGET_NAMESPACE} \
-		-o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || echo "127.0.0.1")
-	    SERVICE_PORT=$(kubectl get svc ${PROJECT_NAME} -n ${TARGET_NAMESPACE} \
-		-o jsonpath='{.spec.ports[0].port}')
-
-	    for i in {1..10}; do
-		HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-		    "http://${SERVICE_IP}:${SERVICE_PORT}/actuator/health" || echo "000")
-		[ "$HTTP_CODE" = "200" ] && echo "Health check passed" && break
-		echo "Waiting for service (attempt $i/10)..."
-		sleep 10
-	    done
-	'''
-    }
-    post {
-	failure {
-	    script { sendNotification("Smoke tests failed", "failure") }
-	}
-    }
-}
-}
-
-post {
-always {
-    cleanWs(deleteDirs: true, patterns: [[pattern: 'target/**', type: 'INCLUDE']])
-}
-success {
-    script { sendNotification("Pipeline completed successfully", "success") }
-}
-failure {
-    script { sendNotification("Pipeline failed - check logs", "failure") }
-}
-unstable {
-    script { sendNotification("Pipeline unstable - review quality gates", "warning") }
-}
-cleanup {
-    sh 'docker system prune -f || true'
-}
-}
-}
-
-def sendNotification(String message, String status) {
+/*def sendNotification(String message, String status) {
 if (!env.SLACK_WEBHOOK) return
 def color = status == 'success' ? 'good' : status == 'failure' ? 'danger' : 'warning'
 def payload = [

@@ -10,7 +10,9 @@ pipeline {
         disableConcurrentBuilds()
     }
 
-    environment {
+environment {
+
+       //----------------------GitHub-------------------------------------
         PROJECT_NAME         = 'enterprise-microservice'
         GIT_REPO_CICD        = 'https://github.com/Shaikh-Majid/TechNest-CICD-Pipeline.git'
         GIT_REPO_DEVEL       = 'https://github.com/Shaikh-Majid/GitPractices.git'
@@ -18,29 +20,56 @@ pipeline {
         GIT_CREDENTIALS_DEVEL = 'Github-Jenkins'
         GIT_BRANCH            = "${env.BRANCH_NAME ?: 'master'}"
 
-        SONARQUBE_SERVER   = 'devopsb39-sonarqube'
+        // ---- Application identity -------------------------------------------
+        APP_NAME            = 'technest'
+        APP_VERSION         = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
 
-        DOCKER_REGISTRY    = 'docker.io'
-        DOCKER_IMAGE       = "docker.io/enterprise/${PROJECT_NAME}"
-        DOCKER_IMAGE_TAG   = "${BUILD_NUMBER}"
-        DOCKER_CREDENTIALS = 'docker-registry-creds'
+        // ---- AWS / ECR -------------------------------------------------------
+        AWS_REGION          = 'ap-south-1'
+        AWS_ACCOUNT_ID      = credentials('aws-account-id')
+        ECR_REGISTRY        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        ECR_REPO            = "${ECR_REGISTRY}/${APP_NAME}"
 
-        NEXUS_URL          = 'https://nexus.company.internal'
-        NEXUS_CREDENTIALS  = 'nexus-creds'
-        NEXUS_REPOSITORY   = 'maven-releases'
+        // ---- Immutable image tag --------------------------------------------
+        // <semver>-<build>-<sha>. Immutable by construction: no 'latest', ever.
+        // A mutable tag plus imagePullPolicy:IfNotPresent means nodes silently
+        // serve stale images and you cannot reason about what is running.
+        GIT_SHA_SHORT       = sh(script: 'git rev-parse --short=8 HEAD', returnStdout: true).trim()
+        IMAGE_TAG           = "${APP_VERSION}-${BUILD_NUMBER}-${GIT_SHA_SHORT}"
+        IMAGE_FULL          = "${ECR_REPO}:${IMAGE_TAG}"
 
-        K8S_NAMESPACE_DEV      = 'dev'
-        K8S_NAMESPACE_STAGING  = 'staging'
-        K8S_NAMESPACE_PROD     = 'production'
-        REPLICAS_DEV       = '1'
-        REPLICAS_STAGING   = '2'
-        REPLICAS_PROD      = '3'
-        DEPLOYMENT_TIMEOUT = '10m'
+        // ---- Nexus -----------------------------------------------------------
+        NEXUS_URL           = 'http://13.201.241.166:8081'
+        NEXUS_NPM_REPO      = ''
+        NEXUS_RAW_REPO      = 'technest-artifacts'
 
-        SLACK_CHANNEL      = '#devops-pipelines'
-       // SLACK_WEBHOOK      = credentials('slack-webhook-url')
+        // ---- SonarQube -------------------------------------------------------
+        SONAR_HOST_URL      = 'https://sonarqube.technest.internal'
+        SONAR_PROJECT_KEY   = 'technest-auth-app'
+
+        // ---- Kubernetes / Helm ----------------------------------------------
+        HELM_CHART_DIR      = 'helm/technest'
+        K8S_NAMESPACE_DEV   = 'technest-dev'
+        K8S_NAMESPACE_PROD  = 'technest-prod'
+        EKS_CLUSTER_DEV     = 'technest-eks-dev'
+        EKS_CLUSTER_PROD    = 'technest-eks-prod'
+
+        // ---- Endpoints -------------------------------------------------------
+        DEV_URL             = 'https://dev.technest.example.com'
+        PROD_URL            = 'https://technest.example.com'
+
+        // ---- Notifications ---------------------------------------------------
+        EMAIL_RECIPIENTS    = 'devops@technest.example.com, engineering@technest.example.com'
+        SLACK_CHANNEL       = '#technest-deploys'
+
+        // ---- Build behaviour -------------------------------------------------
+        NODE_ENV            = 'production'
+        // npm writes to $HOME by default; on a shared agent that collides
+        // between concurrent jobs. Pin the cache into the workspace.
+        NPM_CONFIG_CACHE    = "${WORKSPACE}/.npm-cache"
+        TRIVY_CACHE_DIR     = "${WORKSPACE}/.trivy-cache"
+        DOCKER_BUILDKIT     = '1'
     }
-
     parameters {
         string(name: 'GIT_BRANCH',    defaultValue: 'master', description: 'Application repo branch')
         string(name: 'DEVEL_BRANCH',  defaultValue: 'main',   description: 'Infrastructure repo branch')
@@ -56,9 +85,17 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
+        stage('Clean Workspace & Checkout') {
             agent any
+               steps {
+                cleanWs(
+                    deleteDirs: true,
+                    disableDeferredWipeout: true,
+                    notFailBuild: true
+                )
+               }
             steps {
+              
                 dir('src/cicd') {
                     git branch: "${params.GIT_BRANCH ?: 'master'}",
                         credentialsId: "${GIT_CREDENTIALS_CICD}",
@@ -82,28 +119,37 @@ pipeline {
         }
     }
 
- /*       stage('Build') {
-            agent { label 'docker' }
+stage('Install Dependencies') {
             steps {
-                sh '''
-                    [ ! -f gradlew ] && gradle wrapper --gradle-version 8.5
-                    ./gradlew clean build -x test \
-                        --parallel --build-cache \
-                        -Dorg.gradle.jvmargs="-Xmx1024m -XX:+UseG1GC" \
-                        -PversionNumber=${BUILD_NUMBER}
-                '''
+                script {
+                    withCredentials([string(credentialsId: 'nexus-npm-token', variable: 'NPM_TOKEN')]) {
+                        // Heredoc is quoted ('EOF') so Groovy never interpolates
+                        // NPM_TOKEN — it stays a shell variable and out of logs.
+                        sh '''
+                            set -eu
+                            cat > .npmrc <<'EOF'
+registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
+always-auth=true
+EOF
+                            echo "//nexus.technest.internal/repository/${NEXUS_NPM_REPO}/:_authToken=${NPM_TOKEN}" >> .npmrc
+                        '''
+                        retry(2) {
+                            timeout(time: 10, unit: 'MINUTES') {
+                                sh 'npm ci --prefer-offline --no-audit --no-fund'
+                            }
+                        }
+                    }
+                }
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'build/libs/*.jar', allowEmptyArchive: true
-                }
-                failure {
-                    script { sendNotification("Build failed", "failure") }
+                    // The token lives in this file. Remove it the moment we are
+                    // done, so it cannot leak via archiveArtifacts or a shell.
+                    sh 'rm -f .npmrc'
                 }
             }
         }
-
-        stage('Nexus Upload') {
+       /* stage('Nexus Upload') {
             agent { label 'docker' }
             when { expression { params.UPLOAD_TO_NEXUS } }
             steps {

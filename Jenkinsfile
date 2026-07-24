@@ -43,8 +43,6 @@ pipeline {
         // ---- Nexus -----------------------------------------------------------
         NEXUS_URL           = 'http://13.201.241.166:8081'
         NEXUS_NPM_REPO      = 'http://3.7.37.201:8081/repository/PRJ-technest-auth/'
-        NEXUS_USER           = 'jenkins-nexus'
-        NEXUS_PASSWORD       = 'nexus@123'
 
         // ---- SonarQube -------------------------------------------------------
         SONAR_HOST_URL      = 'https://sonarqube.technest.internal'
@@ -125,7 +123,9 @@ pipeline {
                 script {
                     withCredentials([
     usernamePassword(
-        credentialsId: 'jenkins-cred'
+        credentialsId: 'jenkins-cred',
+        usernameVariable: 'NEXUS_USER',
+        passwordVariable: 'NEXUS_PASS'
     )
 ]) {
     sh '''

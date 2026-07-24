@@ -137,16 +137,17 @@ pipeline {
          //13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:_password=$(echo -n ${NEXUS_PASS} | base64 -w0)
          //13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
          EOF
-        '''
-                        retry(2) {
-                            timeout(time: 10, unit: 'MINUTES') {
-                                sh 'npm ci --prefer-offline --no-audit --no-fund'
+
+          npm install
+          npm ci --prefer-offline --no-audit --no-fund
+
+         '''
                             }
                         }
                     }
                   }
                 }
-        }
+
             post {
                 always {
                     // The token lives in this file. Remove it the moment we are

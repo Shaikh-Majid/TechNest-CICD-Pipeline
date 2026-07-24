@@ -155,7 +155,6 @@ pipeline {
                     sh 'rm -f .npmrc'
                 }
             }
-        }
     }
 
 /*def sendNotification(String message, String status) {

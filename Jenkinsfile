@@ -45,7 +45,7 @@ pipeline {
         NEXUS_NPM_REPO      = 'http://3.7.37.201:8081/repository/PRJ-technest-auth/'
 
         // ---- SonarQube -------------------------------------------------------
-        SONAR_HOST_URL      = 'https://sonarcloud.io/'
+        SONAR_HOST_URL      = 'https://sonarcloud.io'
         SONAR_PROJECT_KEY   = 'technest-auth-app'
 
         // ---- Kubernetes / Helm ----------------------------------------------
@@ -160,7 +160,7 @@ pipeline {
             steps {
                 script {
                     def scannerHome = tool 'sonar'
-                    withSonarQubeEnv('sonarcloud-token') {
+                    withSonarQubeEnv('sonar') {
                         sh """
                             ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \

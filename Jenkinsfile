@@ -23,8 +23,8 @@ pipeline {
         GIT_BRANCH            = "${env.BRANCH_NAME ?: 'master'}"
 
         // ---- Application identity -------------------------------------------
-        APP_NAME            = 'technest'
-        APP_VERSION         = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
+        //APP_NAME            = 'technest'
+        //APP_VERSION         = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
 
         // ---- AWS / ECR -------------------------------------------------------
         //AWS_REGION          = 'ap-south-1'
@@ -37,8 +37,8 @@ pipeline {
         // A mutable tag plus imagePullPolicy:IfNotPresent means nodes silently
         // serve stale images and you cannot reason about what is running.
         //GIT_SHA_SHORT       = sh(script: 'git rev-parse --short=8 HEAD', returnStdout: true).trim()
-        IMAGE_TAG           = "${APP_VERSION}-${BUILD_NUMBER}-${GIT_SHA_SHORT}"
-        IMAGE_FULL          = "${ECR_REPO}:${IMAGE_TAG}"
+        //IMAGE_TAG           = "${APP_VERSION}-${BUILD_NUMBER}-${GIT_SHA_SHORT}"
+        //IMAGE_FULL          = "${ECR_REPO}:${IMAGE_TAG}"
 
         // ---- Nexus -----------------------------------------------------------
         NEXUS_URL           = 'http://13.201.241.166:8081'
@@ -50,7 +50,7 @@ pipeline {
         SONAR_PROJECT_KEY   = 'technest-auth-app'
 
         // ---- Kubernetes / Helm ----------------------------------------------
-        HELM_CHART_DIR      = 'helm/technest'
+        /*HELM_CHART_DIR      = 'helm/technest'
         K8S_NAMESPACE_DEV   = 'technest-dev'
         K8S_NAMESPACE_PROD  = 'technest-prod'
         EKS_CLUSTER_DEV     = 'technest-eks-dev'
@@ -71,6 +71,7 @@ pipeline {
         NPM_CONFIG_CACHE    = "${WORKSPACE}/.npm-cache"
         TRIVY_CACHE_DIR     = "${WORKSPACE}/.trivy-cache"
         DOCKER_BUILDKIT     = '1'
+        */
     }
     parameters {
         string(name: 'GIT_BRANCH',    defaultValue: 'master', description: 'Application repo branch')

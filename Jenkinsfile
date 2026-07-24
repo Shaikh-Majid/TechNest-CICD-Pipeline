@@ -24,7 +24,7 @@ pipeline {
 
         // ---- Application identity -------------------------------------------
          APP_NAME            = 'technest'
-         APP_VERSION         = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
+         //APP_VERSION         = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
 
         // ---- AWS / ECR -------------------------------------------------------
         //AWS_REGION          = 'ap-south-1'

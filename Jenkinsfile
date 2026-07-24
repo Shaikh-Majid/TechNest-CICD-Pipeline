@@ -163,7 +163,6 @@ pipeline {
                     withSonarQubeEnv('sonar') {
                         sh """
                             ${scannerHome}/bin/sonar-scanner \
-                                -Dsonar.organization=Majid Shaikh
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                                 -Dsonar.projectName=${APP_NAME} \
                                 -Dsonar.sources=. \

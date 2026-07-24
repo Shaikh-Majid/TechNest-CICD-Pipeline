@@ -174,6 +174,93 @@ pipeline {
                 }
             }
         } 
+         stage('Quality Gate') {
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    script {
+                        def qg = waitForQualityGate abortPipeline: false
+                        if (qg.status != 'OK') {
+                            if (env.GIT_BRANCH_NAME == 'main') {
+                                // Release branch: a failed gate is a hard stop.
+                                error("Quality Gate failed: ${qg.status} — blocking release.")
+                            } else {
+                                // Feature/develop: surface it, don't block work.
+                                unstable("Quality Gate failed: ${qg.status}")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // =====================================================================
+        // 9 + 10. Build and package.
+        // For a plain Express app 'npm run build' is frequently a no-op — the
+        // --if-present flag keeps this honest instead of failing on a missing
+        // script. The tarball is a Nexus-side provenance record; the Docker
+        // image is the actual deployment artifact.
+        // =====================================================================
+        stage('Build & Package') {
+            steps {
+                sh '''
+                    set -eu
+                    npm run build --if-present
+
+                    # Ship only production dependencies onward.
+                    npm prune --omit=dev
+
+                    mkdir -p dist
+                    tar -czf dist/${APP_NAME}-${IMAGE_TAG}.tar.gz \
+                        --exclude=.git \
+                        --exclude=coverage \
+                        --exclude=reports \
+                        --exclude=tests \
+                        --exclude=dist \
+                        --exclude=.npm-cache \
+                        --exclude=.trivy-cache \
+                        .
+
+                    sha256sum dist/${APP_NAME}-${IMAGE_TAG}.tar.gz > dist/${APP_NAME}-${IMAGE_TAG}.tar.gz.sha256
+                '''
+            }
+        }
+
+        // =====================================================================
+        // 11. Upload artifact to Nexus.
+        // Only for develop/main — feature branches would flood the repo with
+        // artifacts nobody will ever deploy.
+        // =====================================================================
+        stage('Upload to Nexus') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'develop'
+                }
+                beforeAgent true
+            }
+            steps {
+                script {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'nexus-credentials',
+                        usernameVariable: 'NEXUS_USER',
+                        passwordVariable: 'NEXUS_PASS'
+                    )]) {
+                        retry(3) {
+                            sh '''
+                                set -eu
+                                for f in dist/${APP_NAME}-${IMAGE_TAG}.tar.gz dist/${APP_NAME}-${IMAGE_TAG}.tar.gz.sha256; do
+                                    curl --fail --silent --show-error \
+                                        --user "${NEXUS_USER}:${NEXUS_PASS}" \
+                                        --upload-file "${f}" \
+                                        "${NEXUS_URL}/repository/${NEXUS_RAW_REPO}/${APP_NAME}/${IMAGE_TAG}/$(basename ${f})"
+                                done
+                            '''
+                        }
+                        echo "Artifact published: ${NEXUS_URL}/repository/${NEXUS_RAW_REPO}/${APP_NAME}/${IMAGE_TAG}/"
+                    }
+                }
+            }
+        }
     }
 
 /*def sendNotification(String message, String status) {

@@ -129,13 +129,13 @@ pipeline {
     )]) 
         {
         dir('src/app'){
-        sh '''
+         sh '''
          cat > .npmrc <<EOF
          registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
          always-auth=true
-         //13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
-         //13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:_password=$(echo -n ${NEXUS_PASS} | base64 -w0)
-         //13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
+         //${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
+         //${NEXUS_NPM_REPO}/:_password=$(echo -n ${NEXUS_PASS} | base64 -w0)
+         //{NEXUS_NPM_REPO}/:email=jenkins@example.com
          EOF
 
           npm install
@@ -147,14 +147,14 @@ pipeline {
                     }
                   }
                 }
-
-            post {
-                always {
+                post {
+                  always {
                     // The token lives in this file. Remove it the moment we are
                     // done, so it cannot leak via archiveArtifacts or a shell.
                     sh 'rm -f .npmrc'
                 }
             }
+    
     }
 
 /*def sendNotification(String message, String status) {

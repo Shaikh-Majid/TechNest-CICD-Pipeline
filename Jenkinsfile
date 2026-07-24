@@ -165,14 +165,10 @@ pipeline {
                             ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                                 -Dsonar.projectName=${APP_NAME} \
-                                -Dsonar.projectVersion=${APP_VERSION} \
                                 -Dsonar.sources=. \
                                 -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/reports/**,**/*.test.js \
                                 -Dsonar.tests=tests \
-                                -Dsonar.test.inclusions=**/*.test.js \
-                                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                -Dsonar.eslint.reportPaths=reports/eslint.xml \
-                                -Dsonar.sourceEncoding=UTF-8
+                                -Dsonar.host.url=https://sonarcloud.io
                         """
                     }
                 }

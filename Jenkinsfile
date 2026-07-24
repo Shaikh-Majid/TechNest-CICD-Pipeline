@@ -125,7 +125,7 @@ pipeline {
                 script {
                     withCredentials([
     usernamePassword(
-        credentialsId: 'jenkins-nexus'
+        credentialsId: 'jenkins-cred'
     )
 ]) {
     sh '''

@@ -42,8 +42,9 @@ pipeline {
 
         // ---- Nexus -----------------------------------------------------------
         NEXUS_URL           = 'http://13.201.241.166:8081'
-        NEXUS_NPM_REPO      = ''
-        NEXUS_RAW_REPO      = 'technest-artifacts'
+        NEXUS_NPM_REPO      = 'http://3.7.37.201:8081/repository/PRJ-technest-auth/'
+        NEXUS_USER           = 'jenkins-nexus'
+        NEXUS_PASSWORD       = 'nexus@123'
 
         // ---- SonarQube -------------------------------------------------------
         SONAR_HOST_URL      = 'https://sonarqube.technest.internal'
@@ -122,17 +123,20 @@ pipeline {
           agent { label 'master_node' }
             steps {
                 script {
-                    withCredentials([string(credentialsId: 'nexus-npm-token', variable: 'NPM_TOKEN')]) {
-                        // Heredoc is quoted ('EOF') so Groovy never interpolates
-                        // NPM_TOKEN — it stays a shell variable and out of logs.
-                        sh '''
-                            set -eu
-                            cat > .npmrc <<'EOF'
-              registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
-              always-auth=true
-              EOF
-                            echo "//nexus.technest.internal/repository/${NEXUS_NPM_REPO}/:_authToken=${NPM_TOKEN}" >> .npmrc
-                        '''
+                    withCredentials([
+    usernamePassword(
+        credentialsId: 'jenkins-nexus'
+    )
+]) {
+    sh '''
+cat > .npmrc <<EOF
+registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
+always-auth=true
+//13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
+//13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:_password=$(echo -n ${NEXUS_PASS} | base64 -w0)
+//13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
+EOF
+'''
                         retry(2) {
                             timeout(time: 10, unit: 'MINUTES') {
                                 sh 'npm ci --prefer-offline --no-audit --no-fund'

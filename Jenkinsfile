@@ -126,17 +126,16 @@ pipeline {
         credentialsId: 'jenkins-cred',
         usernameVariable: 'NEXUS_USER',
         passwordVariable: 'NEXUS_PASS'
-    )
-]) {
-    sh '''
-cat > .npmrc <<EOF
-registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
-always-auth=true
-//13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
-//13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:_password=$(echo -n ${NEXUS_PASS} | base64 -w0)
-//13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
-EOF
-'''
+    )]) dir('src/app'){
+        sh '''
+         cat > .npmrc <<EOF
+         registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
+         always-auth=true
+         //13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
+         //13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:_password=$(echo -n ${NEXUS_PASS} | base64 -w0)
+         //13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
+         EOF
+        '''
                         retry(2) {
                             timeout(time: 10, unit: 'MINUTES') {
                                 sh 'npm ci --prefer-offline --no-audit --no-fund'
@@ -144,7 +143,7 @@ EOF
                         }
                     }
                 }
-            }
+        }
             post {
                 always {
                     // The token lives in this file. Remove it the moment we are

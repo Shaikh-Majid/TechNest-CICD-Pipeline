@@ -46,7 +46,7 @@ pipeline {
 
         // ---- SonarQube -------------------------------------------------------
         SONAR_HOST_URL      = 'https://sonarcloud.io'
-        SONAR_PROJECT_KEY   = 'technest-auth-app'
+        SONAR_PROJECT_KEY   = 'shaikh-majid'
 
         // ---- Kubernetes / Helm ----------------------------------------------
         /*HELM_CHART_DIR      = 'helm/technest'
@@ -163,6 +163,7 @@ pipeline {
                     withSonarQubeEnv('sonar') {
                         sh """
                             ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.organization=Majid Shaikh
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                                 -Dsonar.projectName=${APP_NAME} \
                                 -Dsonar.sources=. \

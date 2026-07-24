@@ -23,8 +23,8 @@ pipeline {
         GIT_BRANCH            = "${env.BRANCH_NAME ?: 'master'}"
 
         // ---- Application identity -------------------------------------------
-        //APP_NAME            = 'technest'
-        //APP_VERSION         = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
+         APP_NAME            = 'technest'
+         APP_VERSION         = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
 
         // ---- AWS / ECR -------------------------------------------------------
         //AWS_REGION          = 'ap-south-1'
@@ -45,7 +45,7 @@ pipeline {
         NEXUS_NPM_REPO      = 'http://3.7.37.201:8081/repository/PRJ-technest-auth/'
 
         // ---- SonarQube -------------------------------------------------------
-        SONAR_HOST_URL      = 'https://sonarqube.technest.internal'
+        SONAR_HOST_URL      = 'https://sonarcloud.io/'
         SONAR_PROJECT_KEY   = 'technest-auth-app'
 
         // ---- Kubernetes / Helm ----------------------------------------------
@@ -155,6 +155,29 @@ pipeline {
                 }
             }
         }
+
+       stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'sonar'
+                    withSonarQubeEnv('sonarcloud-token') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.projectName=${APP_NAME} \
+                                -Dsonar.projectVersion=${APP_VERSION} \
+                                -Dsonar.sources=. \
+                                -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/reports/**,**/*.test.js \
+                                -Dsonar.tests=tests \
+                                -Dsonar.test.inclusions=**/*.test.js \
+                                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                -Dsonar.eslint.reportPaths=reports/eslint.xml \
+                                -Dsonar.sourceEncoding=UTF-8
+                        """
+                    }
+                }
+            }
+        } 
     }
 
 /*def sendNotification(String message, String status) {

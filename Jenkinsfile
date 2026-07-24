@@ -146,7 +146,7 @@ pipeline {
                         }
                     }
                   }
-                }
+    
                 post {
                   always {
                     // The token lives in this file. Remove it the moment we are
@@ -154,7 +154,7 @@ pipeline {
                     sh 'rm -f .npmrc'
                 }
             }
-    
+        }
     }
 
 /*def sendNotification(String message, String status) {

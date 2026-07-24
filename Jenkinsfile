@@ -17,7 +17,7 @@ pipeline {
        //----------------------GitHub-------------------------------------
         PROJECT_NAME         = 'enterprise-microservice'
         GIT_REPO_CICD        = 'https://github.com/Shaikh-Majid/TechNest-CICD-Pipeline.git'
-        GIT_REPO_DEVEL       = 'https://github.com/Shaikh-Majid/GitPractices.git'
+        GIT_REPO_DEVEL       = 'https://github.com/Shaikh-Majid/TechNest-Ecom-RJ.git'
         GIT_CREDENTIALS_CICD =  'Github-Jenkins'
         GIT_CREDENTIALS_DEVEL = 'Github-Jenkins'
         GIT_BRANCH            = "${env.BRANCH_NAME ?: 'master'}"

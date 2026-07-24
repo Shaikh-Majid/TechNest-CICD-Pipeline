@@ -126,7 +126,9 @@ pipeline {
         credentialsId: 'jenkins-cred',
         usernameVariable: 'NEXUS_USER',
         passwordVariable: 'NEXUS_PASS'
-    )]) dir('src/app'){
+    )]) 
+        {
+        dir('src/app'){
         sh '''
          cat > .npmrc <<EOF
          registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
@@ -142,6 +144,7 @@ pipeline {
                             }
                         }
                     }
+                  }
                 }
         }
             post {

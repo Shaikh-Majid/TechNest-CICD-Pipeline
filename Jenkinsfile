@@ -270,38 +270,37 @@ always-auth=true
 //13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
 EOF
 
-                echo
-                echo "========================================="
-                echo "Installing Dependencies"
-                echo "========================================="
-                
-                sh '''
-                echo "========== Repository Contents =========="
-                pwd
-                ls -lah
+echo
+echo "========================================="
+echo "Installing Dependencies"
+echo "========================================="
 
-                echo
-                echo "========== Package Files =========="
-                ls -lah package*
+echo
+echo "========== Repository Contents =========="
+pwd
+ls -lah
 
-                echo
-                echo "========== package-lock.json =========="
-                if [ -f package-lock.json ]; then
-                    echo "package-lock.json FOUND"
-                else
-                    echo "package-lock.json NOT FOUND"
-                fi
-                '''
- 
-                npm ci --prefer-offline --no-audit --no-fund
+echo
+echo "========== Package Files =========="
+ls -lah package* || true
 
-                echo
-                echo "========================================="
-                echo "Installed Packages"
-                echo "========================================="
+echo
+echo "========== package-lock.json =========="
+if [ -f package-lock.json ]; then
+    echo "package-lock.json FOUND"
+else
+    echo "package-lock.json NOT FOUND"
+fi
 
-                npm list --depth=0 || true
+echo
+npm ci --prefer-offline --no-audit --no-fund
 
+echo
+echo "========================================="
+echo "Installed Packages"
+echo "========================================="
+
+npm list --depth=0 || true
                 '''
             }
         }

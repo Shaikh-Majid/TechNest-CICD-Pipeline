@@ -160,8 +160,8 @@ pipeline {
          //{NEXUS_NPM_REPO}/:email=jenkins@example.com
          EOF
 
-          npm install
-          npm ci --prefer-offline --no-audit --no-fund
+//          npm install
+//          npm ci --prefer-offline --no-audit --no-fund
 
          '''
                             }
@@ -173,11 +173,12 @@ pipeline {
                   always {
                     // The token lives in this file. Remove it the moment we are
                     // done, so it cannot leak via archiveArtifacts or a shell.
-                    sh 'rm -f .npmrc'
+                    dir('src/app'){
+		    sh 'rm -f .npmrc'}
                 }
             }
         }
-
+       
        stage('SonarQube Analysis') {
             steps {
                 script {

@@ -39,6 +39,33 @@ pipeline {
 
         SLACK_CHANNEL      = '#devops-pipelines'
        // SLACK_WEBHOOK      = credentials('slack-webhook-url')
+        APP_NAME = 'technest'
+
+        // ---------------- Nexus ----------------
+
+        NEXUS_URL = 'http://localhost:8081'
+
+        NEXUS_NPM_REPO = 'npm-group'
+
+        NEXUS_RAW_REPO = 'PRJ-technest-auth'
+
+        // ---------------- Sonar ----------------
+
+        SONAR_PROJECT_KEY = 'shaikh-majid'
+
+        SONAR_HOST_URL = 'https://sonarcloud.io'
+
+        // ---------------- Workspace ----------------
+
+        APP_DIR = 'src/app'
+
+        CICD_DIR = 'src/cicd'
+
+        NPM_CONFIG_CACHE = "${WORKSPACE}/.npm-cache"
+
+        TRIVY_CACHE_DIR = "${WORKSPACE}/.trivy-cache"
+
+        DOCKER_BUILDKIT = '1'
     }
 
     parameters {

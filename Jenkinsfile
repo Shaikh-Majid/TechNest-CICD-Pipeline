@@ -591,6 +591,8 @@ stage('Upload to Nexus') {
     }
 
 }
+
+}
 post {
 
     success {
@@ -613,8 +615,8 @@ post {
             notFailBuild: true
         )
     }
-
-}
+    
+    }
 
 }
 
@@ -675,4 +677,3 @@ body: """
         attachLog: true
     )
 }
-

@@ -274,7 +274,25 @@ EOF
                 echo "========================================="
                 echo "Installing Dependencies"
                 echo "========================================="
+                
+                sh '''
+                echo "========== Repository Contents =========="
+                pwd
+                ls -lah
 
+                echo
+                echo "========== Package Files =========="
+                ls -lah package*
+
+                echo
+                echo "========== package-lock.json =========="
+                if [ -f package-lock.json ]; then
+                    echo "package-lock.json FOUND"
+                else
+                    echo "package-lock.json NOT FOUND"
+                fi
+                '''
+ 
                 npm ci --prefer-offline --no-audit --no-fund
 
                 echo

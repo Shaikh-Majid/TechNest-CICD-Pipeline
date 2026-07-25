@@ -649,7 +649,6 @@ echo "Failed to send Slack notification: ${e.message}"
   }
   }*/
 
-}
 def sendNotification(String message, String status) {
 emailext(
 subject: "${status}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",

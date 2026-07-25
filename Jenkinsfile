@@ -2,84 +2,99 @@
 
 pipeline {
     agent {
-           label 'master_node'
-          }
+        label 'master_node'
+    }
 
     options {
-        buildDiscarder(logRotator(numToKeepStr: '30', artifactNumToKeepStr: '10'))
+        buildDiscarder(logRotator(
+            numToKeepStr: '30',
+            artifactNumToKeepStr: '10'
+        ))
+
         timeout(time: 2, unit: 'HOURS')
+
         timestamps()
+
         disableConcurrentBuilds()
+
+        skipDefaultCheckout(true)
+
+        ansiColor('xterm')
     }
 
     environment {
 
-       //----------------------GitHub-------------------------------------
-        PROJECT_NAME         = 'enterprise-microservice'
-        GIT_REPO_CICD        = 'https://github.com/Shaikh-Majid/TechNest-CICD-Pipeline.git'
-        GIT_REPO_DEVEL       = 'https://github.com/Shaikh-Majid/TechNest-Ecom-RJ.git'
-        GIT_CREDENTIALS_CICD =  'GitHub'
+        // ---------------- Git ----------------
+        PROJECT_NAME          = 'enterprise-microservice'
+
+        GIT_REPO_CICD         = 'https://github.com/Shaikh-Majid/TechNest-CICD-Pipeline.git'
+        GIT_REPO_DEVEL        = 'https://github.com/Shaikh-Majid/TechNest-Ecom-RJ.git'
+
+        GIT_CREDENTIALS_CICD  = 'GitHub'
         GIT_CREDENTIALS_DEVEL = 'GitHub'
-        GIT_BRANCH            = "${env.BRANCH_NAME ?: 'master'}"
 
-        // ---- Application identity -------------------------------------------
-         APP_NAME            = 'technest'
-         //APP_VERSION         = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
+        // ---------------- Application ----------------
 
-        // ---- AWS / ECR -------------------------------------------------------
-        //AWS_REGION          = 'ap-south-1'
-        //AWS_ACCOUNT_ID      = credentials('aws-account-id')
-        //ECR_REGISTRY        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-        //ECR_REPO            = "${ECR_REGISTRY}/${APP_NAME}"
+        APP_NAME = 'technest'
 
-        // ---- Immutable image tag --------------------------------------------
-        // <semver>-<build>-<sha>. Immutable by construction: no 'latest', ever.
-        // A mutable tag plus imagePullPolicy:IfNotPresent means nodes silently
-        // serve stale images and you cannot reason about what is running.
-        //GIT_SHA_SHORT       = sh(script: 'git rev-parse --short=8 HEAD', returnStdout: true).trim()
-        //IMAGE_TAG           = "${APP_VERSION}-${BUILD_NUMBER}-${GIT_SHA_SHORT}"
-        //IMAGE_FULL          = "${ECR_REPO}:${IMAGE_TAG}"
+        // ---------------- Nexus ----------------
 
-        // ---- Nexus -----------------------------------------------------------
-        NEXUS_URL           = 'http://13.201.241.166:8081'
-        NEXUS_NPM_REPO      = 'http://3.7.37.201:8081/repository/PRJ-technest-auth/'
+        NEXUS_URL = 'http://13.201.241.166:8081'
 
-        // ---- SonarQube -------------------------------------------------------
-        SONAR_HOST_URL      = 'https://sonarcloud.io'
-        SONAR_PROJECT_KEY   = 'shaikh-majid'
+        NEXUS_NPM_REPO = 'PRJ-technest-auth'
 
-        // ---- Kubernetes / Helm ----------------------------------------------
-        /*HELM_CHART_DIR      = 'helm/technest'
-        K8S_NAMESPACE_DEV   = 'technest-dev'
-        K8S_NAMESPACE_PROD  = 'technest-prod'
-        EKS_CLUSTER_DEV     = 'technest-eks-dev'
-        EKS_CLUSTER_PROD    = 'technest-eks-prod'
+        NEXUS_RAW_REPO = 'PRJ-technest-auth'
 
-        // ---- Endpoints -------------------------------------------------------
-        DEV_URL             = 'https://dev.technest.example.com'
-        PROD_URL            = 'https://technest.example.com'
+        // ---------------- Sonar ----------------
 
-        // ---- Notifications ---------------------------------------------------
-        EMAIL_RECIPIENTS    = 'devops@technest.example.com, engineering@technest.example.com'
-        SLACK_CHANNEL       = '#technest-deploys'
+        SONAR_PROJECT_KEY = 'shaikh-majid'
 
-        // ---- Build behaviour -------------------------------------------------
-        NODE_ENV            = 'production'
-        // npm writes to $HOME by default; on a shared agent that collides
-        // between concurrent jobs. Pin the cache into the workspace.
-        NPM_CONFIG_CACHE    = "${WORKSPACE}/.npm-cache"
-        TRIVY_CACHE_DIR     = "${WORKSPACE}/.trivy-cache"
-        DOCKER_BUILDKIT     = '1'
-        */
+        SONAR_HOST_URL = 'https://sonarcloud.io'
+
+        // ---------------- Workspace ----------------
+
+        APP_DIR = 'src/app'
+
+        CICD_DIR = 'src/cicd'
+
+        NPM_CONFIG_CACHE = "${WORKSPACE}/.npm-cache"
+
+        TRIVY_CACHE_DIR = "${WORKSPACE}/.trivy-cache"
+
+        DOCKER_BUILDKIT = '1'
     }
+
     parameters {
-        string(name: 'GIT_BRANCH',    defaultValue: 'master', description: 'Application repo branch')
-        string(name: 'DEVEL_BRANCH',  defaultValue: 'main',   description: 'Infrastructure repo branch')
-        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run unit tests')
-        booleanParam(name: 'SKIP_SONARQUBE', defaultValue: false, description: 'Skip SonarQube scan')
-        booleanParam(name: 'PUSH_DOCKER_IMAGE', defaultValue: true, description: 'Push Docker image to registry')
-        booleanParam(name: 'UPLOAD_TO_NEXUS', defaultValue: true, description: 'Upload artifact to Nexus')
-        choice(name: 'DEPLOY_ENV', choices: ['NONE', 'DEV', 'STAGING', 'PRODUCTION'], description: 'Deployment target')
+
+        string(
+            name: 'GIT_BRANCH',
+            defaultValue: 'master',
+            description: 'CI/CD Repository Branch'
+        )
+
+        string(
+            name: 'DEVEL_BRANCH',
+            defaultValue: 'main',
+            description: 'Application Repository Branch'
+        )
+
+        booleanParam(
+            name: 'RUN_TESTS',
+            defaultValue: true,
+            description: 'Run Unit Tests'
+        )
+
+        booleanParam(
+            name: 'SKIP_SONARQUBE',
+            defaultValue: false,
+            description: 'Skip SonarQube Scan'
+        )
+
+        booleanParam(
+            name: 'UPLOAD_TO_NEXUS',
+            defaultValue: true,
+            description: 'Upload Artifact'
+        )
     }
 
     triggers {
@@ -87,213 +102,519 @@ pipeline {
     }
 
     stages {
-        stage('Clean Workspace & Checkout') {
-            agent { label 'master_node' }
-            steps {
-                cleanWs(
-                    deleteDirs: true,
-                    disableDeferredWipeout: true,
-                    notFailBuild: true
-                )
 
-                dir('src/cicd') {
-                    git branch: "${params.GIT_BRANCH ?: 'master'}",
-                        credentialsId: "${GIT_CREDENTIALS_CICD}",
-                        url: "${GIT_REPO_CICD}"
-                }
-                dir('src/app') {
-                    checkout([
+stage('Clean Workspace & Checkout') {
+
+    steps {
+
+        cleanWs(
+            deleteDirs: true,
+            disableDeferredWipeout: true,
+            notFailBuild: true
+        )
+
+        script {
+
+            echo "=============================="
+            echo "Checking out CI/CD Repository"
+            echo "=============================="
+
+            dir(CICD_DIR) {
+
+                checkout([
                     $class: 'GitSCM',
-                    branches: [[name: "*/${params.DEVEL_BRANCH ?: 'main'}"]],
+                    branches: [[name: "*/${params.GIT_BRANCH}"]],
+                    userRemoteConfigs: [[
+                        url: GIT_REPO_CICD,
+                        credentialsId: GIT_CREDENTIALS_CICD
+                    ]]
+                ])
+            }
+
+            echo "=============================="
+            echo "Checking out Application Repository"
+            echo "=============================="
+
+            dir(APP_DIR) {
+
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "*/${params.DEVEL_BRANCH}"]],
                     userRemoteConfigs: [[
                         url: GIT_REPO_DEVEL,
                         credentialsId: GIT_CREDENTIALS_DEVEL
                     ]]
                 ])
-                        echo "===== Repository Info ====="
-                        sh '''
-        pwd
-        git remote -v
-        git branch
-        git rev-parse --abbrev-ref HEAD
-        git log --oneline -1
 
-        echo "===== Files ====="
-        ls -la
-
-        echo "===== Repository Tree ====="
-        git ls-tree --name-only -r HEAD | head -100
-
-        echo "===== package.json ====="
-        find . -name package.json
-        '''
-                }
             }
-            post {
-                success {
-                    script { sendNotification("Git Successfully Checkout the Repo", "success") }
-                }
-                failure {
-                    script { sendNotification("Git Checkout failed", "failure") }
-                }
-            }
+
         }
 
-        stage('Install Dependencies') {
-          agent { label 'master_node' }
-            steps {
-                script {
-                    withCredentials([
-    usernamePassword(
-        credentialsId: 'jenkins-cred',
-        usernameVariable: 'NEXUS_USER',
-        passwordVariable: 'NEXUS_PASS'
-    )]) 
-        {
-        dir('src/app'){
-         sh '''
-         cat > .npmrc <<EOF
-         registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
-         always-auth=true
-         //${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
-         //${NEXUS_NPM_REPO}/:_password=$(echo -n ${NEXUS_PASS} | base64 -w0)
-         //{NEXUS_NPM_REPO}/:email=jenkins@example.com
-         EOF
-
-//          npm install
-//          npm ci --prefer-offline --no-audit --no-fund
-
-         '''
-                            }
-                        }
-                    }
-                  }
-    
-                post {
-                  always {
-                    // The token lives in this file. Remove it the moment we are
-                    // done, so it cannot leak via archiveArtifacts or a shell.
-                    dir('src/app'){
-		    sh 'rm -f .npmrc'}
-                }
-            }
-        }
-       
-       stage('SonarQube Analysis') {
-            steps {
-                script {
-                    def scannerHome = tool 'sonar'
-                    withSonarQubeEnv('sonar') {
-                        sh """
-                            ${scannerHome}/bin/sonar-scanner \
-                                -Dsonar.organization=shaikh-majid \
-                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                -Dsonar.projectName=${APP_NAME} \
-                                -Dsonar.sources=. \
-                                -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/reports/**,**/*.test.js \
-                                -Dsonar.host.url=https://sonarcloud.io
-                        """
-                    }
-                }
-            }
-        } 
-      stage('Quality Gate') {
-        steps {
         script {
-            try {
-                timeout(time: 5, unit: 'MINUTES') {
-                    def qg = waitForQualityGate(abortPipeline: false)
 
-                    if (qg.status != 'OK') {
-                        if (env.BRANCH_NAME == 'main') {
-                            error("Quality Gate failed: ${qg.status}")
-                        } else {
-                            unstable("Quality Gate failed: ${qg.status}")
-                        }
-                    }
+            echo "======================================="
+            echo "Verifying Application Repository"
+            echo "======================================="
 
-                    echo "Quality Gate Passed"
-                }
-            } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
-                echo "Quality Gate timed out after 5 minutes. Skipping this stage."
-                currentBuild.result = 'UNSTABLE'    // Optional
+            dir(APP_DIR) {
+
+                sh '''
+                set -eux
+
+                echo "Workspace:"
+                pwd
+
+                echo
+                echo "Git Remote:"
+                git remote -v
+
+                echo
+                echo "Branch:"
+                git branch -a
+
+                echo
+                echo "Current Commit:"
+                git log --oneline -1
+
+                echo
+                echo "Repository Contents:"
+                ls -lah
+
+                echo
+                echo "Searching package.json"
+                test -f package.json
+
+                echo
+                echo "Searching server.js"
+                test -f server.js
+
+                echo
+                echo "Searching README"
+                test -f README.md
+
+                echo
+                echo "Repository Tree"
+                find . -maxdepth 2 | sort
+
+                '''
+            }
+
+        }
+
+    }
+
+    post {
+
+        success {
+
+            echo "Application checkout completed successfully."
+
+            script {
+                sendNotification(
+                    "Git checkout completed successfully.",
+                    "success"
+                )
+            }
+
+        }
+
+        failure {
+
+            script {
+                sendNotification(
+                    "Git checkout failed.",
+                    "failure"
+                )
+            }
+
+        }
+
+    }
+
+}
+
+stage('Install Dependencies') {
+
+    steps {
+
+        dir(APP_DIR) {
+
+            withCredentials([
+                usernamePassword(
+                    credentialsId: 'jenkins-cred',
+                    usernameVariable: 'NEXUS_USER',
+                    passwordVariable: 'NEXUS_PASS'
+                )
+            ]) {
+
+                sh '''
+                set -euxo pipefail
+
+                echo "========================================="
+                echo "Node & NPM Version"
+                echo "========================================="
+
+                node --version
+                npm --version
+
+                echo
+                echo "========================================="
+                echo "Creating .npmrc"
+                echo "========================================="
+
+                cat > .npmrc <<EOF
+registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
+always-auth=true
+//13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
+//13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:_password=$(printf "%s" "${NEXUS_PASS}" | base64 -w0)
+//13.201.241.166:8081/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
+EOF
+
+                echo
+                echo "========================================="
+                echo "Installing Dependencies"
+                echo "========================================="
+
+                npm ci --prefer-offline --no-audit --no-fund
+
+                echo
+                echo "========================================="
+                echo "Installed Packages"
+                echo "========================================="
+
+                npm list --depth=0 || true
+
+                '''
             }
         }
     }
-}
 
-        // =====================================================================
-        // 9 + 10. Build and package.
-        // For a plain Express app 'npm run build' is frequently a no-op — the
-        // --if-present flag keeps this honest instead of failing on a missing
-        // script. The tarball is a Nexus-side provenance record; the Docker
-        // image is the actual deployment artifact.
-        // =====================================================================
-        stage('Build & Package') {
-            steps {
-                dir('src/app'){
+    post {
+
+        always {
+
+            dir(APP_DIR) {
+
                 sh '''
-                  pwd
-                    set -eu
-                    npm run build --if-present
-
-                    # Ship only production dependencies onward.
-                    npm prune --omit=dev
-
-                    mkdir -p dist
-                    tar -czf dist/${APP_NAME}-${IMAGE_TAG}.tar.gz \
-                        --exclude=.git \
-                        --exclude=coverage \
-                        --exclude=reports \
-                        --exclude=tests \
-                        --exclude=dist \
-                        --exclude=.npm-cache \
-                        --exclude=.trivy-cache \
-                        .
-
-                    sha256sum dist/${APP_NAME}-${IMAGE_TAG}.tar.gz > dist/${APP_NAME}-${IMAGE_TAG}.tar.gz.sha256
+                rm -f .npmrc
                 '''
-                }
             }
+
         }
 
-        // =====================================================================
-        // 11. Upload artifact to Nexus.
-        // Only for develop/main — feature branches would flood the repo with
-        // artifacts nobody will ever deploy.
-        // =====================================================================
-        stage('Upload to Nexus') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'develop'
+        success {
+
+            echo "Dependencies installed successfully."
+
+        }
+
+        failure {
+
+            echo "Dependency installation failed."
+
+        }
+
+    }
+
+}
+stage('SonarQube Analysis') {
+
+    when {
+        expression {
+            return !params.SKIP_SONARQUBE
+        }
+    }
+
+    steps {
+
+        dir(APP_DIR) {
+
+            script {
+
+                def scannerHome = tool 'sonar'
+
+                withSonarQubeEnv('sonar') {
+
+                    sh """
+                    set -eux
+
+                    ${scannerHome}/bin/sonar-scanner \
+                      -Dsonar.organization=shaikh-majid \
+                      -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                      -Dsonar.projectName=${APP_NAME} \
+                      -Dsonar.projectVersion=${BUILD_NUMBER} \
+                      -Dsonar.sources=. \
+                      -Dsonar.sourceEncoding=UTF-8 \
+                      -Dsonar.host.url=${SONAR_HOST_URL} \
+                      -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                      -Dsonar.exclusions=node_modules/**,coverage/**,dist/**,.git/**,.scannerwork/**,*.test.js
+                    """
+
                 }
-                beforeAgent true
+
             }
-            steps {
-                script {
-                    withCredentials([usernamePassword(
+
+        }
+
+    }
+
+    post {
+
+        success {
+
+            echo "SonarQube scan completed successfully."
+
+        }
+
+        failure {
+
+            echo "SonarQube scan failed."
+
+        }
+
+    }
+
+}
+stage('Quality Gate') {
+
+    when {
+        expression {
+            return !params.SKIP_SONARQUBE
+        }
+    }
+
+    steps {
+
+        script {
+
+            timeout(time: 10, unit: 'MINUTES') {
+
+                def qualityGate = waitForQualityGate(abortPipeline: false)
+
+                echo "===================================="
+                echo "Quality Gate Status : ${qualityGate.status}"
+                echo "===================================="
+
+                switch (qualityGate.status) {
+
+                    case 'OK':
+                        echo "Quality Gate Passed."
+                        break
+
+                    case 'WARN':
+                        unstable("Quality Gate returned WARN.")
+                        break
+
+                    case 'ERROR':
+                        error("Quality Gate Failed.")
+                        break
+
+                    default:
+                        unstable("Unexpected Quality Gate Status: ${qualityGate.status}")
+                }
+
+            }
+
+        }
+
+    }
+
+}
+stage('Build & Package') {
+
+    steps {
+
+        dir(APP_DIR) {
+
+            script {
+
+                env.APP_VERSION = sh(
+                    script: "node -p \"require('./package.json').version\"",
+                    returnStdout: true
+                ).trim()
+
+                env.IMAGE_TAG = "${env.APP_VERSION}-${env.BUILD_NUMBER}"
+
+                sh '''
+                set -euxo pipefail
+
+                rm -rf dist
+                mkdir -p dist
+
+                test -f package.json
+                test -f server.js
+
+                ARTIFACT_NAME="${APP_NAME}-${IMAGE_TAG}.tar.gz"
+
+                echo "Creating ${ARTIFACT_NAME}"
+
+                tar \
+                    --exclude=node_modules \
+                    --exclude=.git \
+                    --exclude=coverage \
+                    --exclude=.scannerwork \
+                    --exclude=dist \
+                    -czf dist/${ARTIFACT_NAME} .
+
+                sha256sum dist/${ARTIFACT_NAME} \
+                    > dist/${ARTIFACT_NAME}.sha256
+
+                ls -lh dist
+                '''
+            }
+
+            archiveArtifacts(
+                artifacts: 'dist/*',
+                fingerprint: true
+            )
+
+        }
+
+    }
+
+}
+stage('Upload to Nexus') {
+
+    when {
+        allOf {
+            expression { return params.UPLOAD_TO_NEXUS }
+            anyOf {
+                branch 'main'
+                branch 'develop'
+            }
+        }
+        beforeAgent true
+    }
+
+    steps {
+
+        dir(APP_DIR) {
+
+            script {
+
+                withCredentials([
+                    usernamePassword(
                         credentialsId: 'nexus-jenkins',
                         usernameVariable: 'NEXUS_USER',
                         passwordVariable: 'NEXUS_PASS'
-                    )]) {
-                        retry(3) {
-                            sh '''
-                                set -eu
-                                for f in dist/${APP_NAME}-${IMAGE_TAG}.tar.gz dist/${APP_NAME}-${IMAGE_TAG}.tar.gz.sha256; do
-                                    curl --fail --silent --show-error \
-                                        --user "${NEXUS_USER}:${NEXUS_PASS}" \
-                                        --upload-file "${f}" \
-                                        "${NEXUS_URL}/repository/${NEXUS_RAW_REPO}/${APP_NAME}/${IMAGE_TAG}/$(basename ${f})"
-                                done
-                            '''
-                        }
-                        echo "Artifact published: ${NEXUS_URL}/repository/${NEXUS_RAW_REPO}/${APP_NAME}/${IMAGE_TAG}/"
+                    )
+                ]) {
+
+                    retry(3) {
+
+                        sh '''
+                        set -euxo pipefail
+
+                        echo "======================================"
+                        echo "Uploading Artifacts to Nexus"
+                        echo "======================================"
+
+                        ARTIFACT_NAME="${APP_NAME}-${IMAGE_TAG}.tar.gz"
+
+                        echo
+                        echo "Artifacts:"
+                        ls -lh dist/
+
+                        for f in \
+                            "dist/${ARTIFACT_NAME}" \
+                            "dist/${ARTIFACT_NAME}.sha256"
+                        do
+
+                            test -f "$f"
+
+                            echo
+                            echo "Uploading $(basename "$f")"
+
+                            HTTP_CODE=$(
+                                curl \
+                                    --silent \
+                                    --show-error \
+                                    --write-out "%{http_code}" \
+                                    --output /tmp/nexus_upload.log \
+                                    --user "${NEXUS_USER}:${NEXUS_PASS}" \
+                                    --upload-file "$f" \
+                                    "${NEXUS_URL}/repository/${NEXUS_RAW_REPO}/${APP_NAME}/${IMAGE_TAG}/$(basename "$f")"
+                            )
+
+                            echo "HTTP Status : ${HTTP_CODE}"
+
+                            if [ "${HTTP_CODE}" != "201" ]; then
+                                echo
+                                echo "Upload failed for $(basename "$f")"
+
+                                echo
+                                echo "Nexus Response:"
+                                cat /tmp/nexus_upload.log || true
+
+                                exit 1
+                            fi
+
+                            echo "Successfully uploaded $(basename "$f")"
+
+                        done
+
+                        echo
+                        echo "======================================"
+                        echo "All artifacts uploaded successfully."
+                        echo "======================================"
+
+                        '''
+
                     }
+
+                    echo "Artifacts published successfully."
+
+                    echo "${NEXUS_URL}/repository/${NEXUS_RAW_REPO}/${APP_NAME}/${IMAGE_TAG}/"
+
                 }
+
             }
+
         }
+
     }
+
+    post {
+
+        success {
+
+            echo "Nexus upload completed successfully."
+
+        }
+
+        failure {
+
+            echo "Nexus upload failed."
+
+        }
+
+    }
+
+}
+post {
+
+    success {
+        sendNotification(
+            "Pipeline completed successfully.",
+            "success"
+        )
+    }
+
+    failure {
+        sendNotification(
+            "Pipeline failed.",
+            "failure"
+        )
+    }
+
+    always {
+        cleanWs(
+            deleteDirs: true,
+            notFailBuild: true
+        )
+    }
+
+}
 
 /*def sendNotification(String message, String status) {
 if (!env.SLACK_WEBHOOK) return
@@ -306,8 +627,8 @@ attachments: [[
     title: "${env.PROJECT_NAME} - Build #${env.BUILD_NUMBER}",
     text: message,
     fields: [
-	[title: 'Branch', value: env.GIT_BRANCH, short: true],
-	[title: 'Environment', value: env.DEPLOY_ENV ?: 'N/A', short: true]
+        [title: 'Branch', value: env.GIT_BRANCH, short: true],
+        [title: 'Environment', value: env.DEPLOY_ENV ?: 'N/A', short: true]
     ]
 ]]
 ]
@@ -331,7 +652,7 @@ subject: "${status}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
 body: """
 <html>
 <body>
-<h1>${message}<h1>
+<h1>${message}</h1>
 /*<h2>${env.JOB_NAME} #${env.BUILD_NUMBER} </h2>
 
 <p><b>Job Name:</b>${env.JOB_NAME}</p>
@@ -352,3 +673,4 @@ body: """
         attachLog: true
     )
 }
+

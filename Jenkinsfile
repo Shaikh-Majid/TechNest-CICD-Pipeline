@@ -18,8 +18,8 @@ pipeline {
         PROJECT_NAME         = 'enterprise-microservice'
         GIT_REPO_CICD        = 'https://github.com/Shaikh-Majid/TechNest-CICD-Pipeline.git'
         GIT_REPO_DEVEL       = 'https://github.com/Shaikh-Majid/TechNest-Ecom-RJ.git'
-        GIT_CREDENTIALS_CICD =  'Github-Jenkins'
-        GIT_CREDENTIALS_DEVEL = 'Github-Jenkins'
+        GIT_CREDENTIALS_CICD =  'GitHub'
+        GIT_CREDENTIALS_DEVEL = 'GitHub'
         GIT_BRANCH            = "${env.BRANCH_NAME ?: 'master'}"
 
         // ---- Application identity -------------------------------------------
@@ -102,9 +102,31 @@ pipeline {
                         url: "${GIT_REPO_CICD}"
                 }
                 dir('src/app') {
-                    git branch: "${params.DEVEL_BRANCH ?: 'main'}",
-                        credentialsId: "${GIT_CREDENTIALS_DEVEL}",
-                        url: "${GIT_REPO_DEVEL}"
+                    checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: "*/${params.DEVEL_BRANCH ?: 'main'}"]],
+                    userRemoteConfigs: [[
+                        url: GIT_REPO_DEVEL,
+                        credentialsId: GIT_CREDENTIALS_DEVEL
+                    ]]
+                ])
+                        echo "===== Repository Info ====="
+                        sh '''
+        pwd
+        git remote -v
+        git branch
+        git rev-parse --abbrev-ref HEAD
+        git log --oneline -1
+
+        echo "===== Files ====="
+        ls -la
+
+        echo "===== Repository Tree ====="
+        git ls-tree --name-only -r HEAD | head -100
+
+        echo "===== package.json ====="
+        find . -name package.json
+        '''
                 }
             }
             post {
@@ -202,7 +224,9 @@ pipeline {
         // =====================================================================
         stage('Build & Package') {
             steps {
+                dir('src/app'){
                 sh '''
+                  pwd
                     set -eu
                     npm run build --if-present
 
@@ -222,6 +246,7 @@ pipeline {
 
                     sha256sum dist/${APP_NAME}-${IMAGE_TAG}.tar.gz > dist/${APP_NAME}-${IMAGE_TAG}.tar.gz.sha256
                 '''
+                }
             }
         }
 

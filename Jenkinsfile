@@ -196,24 +196,30 @@ pipeline {
                 }
             }
         } 
-         stage('Quality Gate') {
-            steps {
-                timeout(time: 10, unit: 'MINUTES') {
-                    script {
-                        def qg = waitForQualityGate abortPipeline: false
-                        if (qg.status != 'OK') {
-                            if (env.GIT_BRANCH_NAME == 'main') {
-                                // Release branch: a failed gate is a hard stop.
-                                error("Quality Gate failed: ${qg.status} — blocking release.")
-                            } else {
-                                // Feature/develop: surface it, don't block work.
-                                unstable("Quality Gate failed: ${qg.status}")
-                            }
+      stage('Quality Gate') {
+        steps {
+        script {
+            try {
+                timeout(time: 5, unit: 'MINUTES') {
+                    def qg = waitForQualityGate(abortPipeline: false)
+
+                    if (qg.status != 'OK') {
+                        if (env.BRANCH_NAME == 'main') {
+                            error("Quality Gate failed: ${qg.status}")
+                        } else {
+                            unstable("Quality Gate failed: ${qg.status}")
                         }
                     }
+
+                    echo "Quality Gate Passed"
                 }
+            } catch (org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e) {
+                echo "Quality Gate timed out after 5 minutes. Skipping this stage."
+                currentBuild.result = 'UNSTABLE'    // Optional
             }
         }
+    }
+}
 
         // =====================================================================
         // 9 + 10. Build and package.

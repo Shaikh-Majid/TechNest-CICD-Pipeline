@@ -293,7 +293,7 @@ else
 fi
 
 echo
-npm ci --prefer-offline --no-audit --no-fund
+npm install --prefer-offline --no-audit --no-fund
 
 echo
 echo "========================================="

@@ -616,6 +616,8 @@ post {
 
 }
 
+}
+
 /*def sendNotification(String message, String status) {
 if (!env.SLACK_WEBHOOK) return
 def color = status == 'success' ? 'good' : status == 'failure' ? 'danger' : 'warning'

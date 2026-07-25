@@ -185,6 +185,7 @@ pipeline {
                     withSonarQubeEnv('sonar') {
                         sh """
                             ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.organization=shaikh-majid \
                                 -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                                 -Dsonar.projectName=${APP_NAME} \
                                 -Dsonar.sources=. \
@@ -266,7 +267,7 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(
-                        credentialsId: 'nexus-credentials',
+                        credentialsId: 'nexus-jenkins',
                         usernameVariable: 'NEXUS_USER',
                         passwordVariable: 'NEXUS_PASS'
                     )]) {

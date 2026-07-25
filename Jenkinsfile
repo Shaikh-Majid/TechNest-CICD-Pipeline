@@ -248,7 +248,7 @@ stage('Install Dependencies') {
             ]) {
 
                 sh '''
-                set -euxo pipefail
+                set -eux
 
                 echo "========================================="
                 echo "Node & NPM Version"
@@ -436,7 +436,7 @@ stage('Build & Package') {
                 env.IMAGE_TAG = "${env.APP_VERSION}-${env.BUILD_NUMBER}"
 
                 sh '''
-                set -euxo pipefail
+                set -eux
 
                 rm -rf dist
                 mkdir -p dist
@@ -503,7 +503,7 @@ stage('Upload to Nexus') {
                     retry(3) {
 
                         sh '''
-                        set -euxo pipefail
+                        set -eux
 
                         echo "======================================"
                         echo "Uploading Artifacts to Nexus"

@@ -190,7 +190,6 @@ pipeline {
                                 -Dsonar.projectName=${APP_NAME} \
                                 -Dsonar.sources=. \
                                 -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/reports/**,**/*.test.js \
-                                -Dsonar.tests=tests \
                                 -Dsonar.host.url=https://sonarcloud.io
                         """
                     }

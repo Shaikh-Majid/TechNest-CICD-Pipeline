@@ -41,7 +41,7 @@ pipeline {
 
         NEXUS_URL = 'http://localhost:8081'
 
-        NEXUS_NPM_REPO = 'PRJ-technest-auth'
+        NEXUS_NPM_REPO = 'npm-group'
 
         NEXUS_RAW_REPO = 'PRJ-technest-auth'
 

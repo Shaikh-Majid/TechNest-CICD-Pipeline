@@ -41,9 +41,8 @@ pipeline {
 
         NEXUS_URL = 'http://localhost:8081'
 
-        NEXUS_NPM_REPO = 'npm-group'
+        NEXUS_NPM_REPO = 'PRJ-technest-auth'
 
-        NEXUS_RAW_REPO = 'PRJ-technest-auth'
 
         // ---------------- Sonar ----------------
 
@@ -541,7 +540,7 @@ stage('Upload to Nexus') {
                                     --output /tmp/nexus_upload.log \
                                     --user "${NEXUS_USER}:${NEXUS_PASS}" \
                                     --upload-file "$f" \
-                                    "${NEXUS_URL}/repository/${NEXUS_RAW_REPO}/${APP_NAME}/${IMAGE_TAG}/$(basename "$f")"
+                                    "${NEXUS_URL}/repository/$NEXUS_NPM_REPO/${APP_NAME}/${IMAGE_TAG}/$(basename "$f")"
                             )
 
                             echo "HTTP Status : ${HTTP_CODE}"
@@ -572,7 +571,7 @@ stage('Upload to Nexus') {
 
                     echo "Artifacts published successfully."
 
-                    echo "${NEXUS_URL}/repository/${NEXUS_RAW_REPO}/${APP_NAME}/${IMAGE_TAG}/"
+                    echo "${NEXUS_URL}/repository/$NEXUS_NPM_REPO/${APP_NAME}/${IMAGE_TAG}/"
 
                 }
 

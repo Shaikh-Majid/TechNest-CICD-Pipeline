@@ -492,16 +492,7 @@ stage('Build & Package') {
 }
 stage('Upload to Nexus') {
 
-    when {
-        allOf {
-            expression { return params.UPLOAD_TO_NEXUS }
-            anyOf {
-                branch 'main'
-                branch 'develop'
-            }
-        }
-        beforeAgent true
-    }
+     agent{ label 'docker-server' }
 
     steps {
 

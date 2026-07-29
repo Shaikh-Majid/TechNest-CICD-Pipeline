@@ -532,10 +532,7 @@ EOF
 
                     npm publish
 
-                    echo
-                    echo "Successfully published ${PKG_NAME}@${PKG_VERSION}"
-
-                fi
+                
                 '''
 
                 echo "Registry: ${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/"

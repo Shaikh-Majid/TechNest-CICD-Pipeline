@@ -39,7 +39,7 @@ pipeline {
 
         // ---------------- Nexus ----------------
 
-        NEXUS_URL = 'http://localhost:8081'
+        NEXUS_URL = 'http://nexus.company.internal:8081'
 
         NEXUS_NPM_REPO = 'PRJ-technest-auth'
 
@@ -264,9 +264,9 @@ stage('Install Dependencies') {
                 cat > .npmrc <<EOF
 registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
 always-auth=true
-//localhost:8081/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
-//localhost:8081/repository/${NEXUS_NPM_REPO}/:_password=$(printf "%s" "${NEXUS_PASS}" | base64 -w0)
-//localhost:8081/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
+//${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
+//${NEXUS_URL}repository/${NEXUS_NPM_REPO}/:_password=$(printf "%s" "${NEXUS_PASS}" | base64 -w0)
+//${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
 EOF
 
 echo
@@ -528,10 +528,10 @@ stage('Upload to Nexus') {
                 cat > .npmrc <<EOF
 registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
 always-auth=true
-//localhost:8081/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
-//localhost:8081/repository/${NEXUS_NPM_REPO}/:_password=$(printf "%s" "${NEXUS_PASS}" | base64 -w0)
-//localhost:8081/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
-EOF
+//${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
+//${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:_password=$(printf "%s" "${NEXUS_PASS}" | base64 -w0)
+//${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
+EOF 
 
                 echo
                 echo "======================================"

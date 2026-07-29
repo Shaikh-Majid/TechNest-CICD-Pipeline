@@ -521,7 +521,7 @@ stage('Upload to Nexus') {
 registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
 always-auth=true
 //${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
-//${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:_password=$(printf "%s" "${NEXUS_PASS}" | base64 -w0)
+//${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:_password=${NEXUS_PASS}
 //${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
 EOF 
 

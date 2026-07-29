@@ -490,9 +490,6 @@ stage('Build & Package') {
 
 }
 stage('Upload to Nexus') {
-
-    agent { label 'docker-server' }
-
     when {
         expression {
             return params.UPLOAD_TO_NEXUS
@@ -520,11 +517,6 @@ stage('Upload to Nexus') {
 
                 test -f package.json
 
-                PKG_NAME="$(node -p "require('./package.json').name")"
-                PKG_VERSION="$(node -p "require('./package.json').version")"
-
-                echo "Package : ${PKG_NAME}@${PKG_VERSION}"
-
                 cat > .npmrc <<EOF
 registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
 always-auth=true
@@ -533,18 +525,7 @@ always-auth=true
 //${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
 EOF 
 
-                echo
-                echo "======================================"
-                echo "Checking for existing version in Nexus"
-                echo "======================================"
-
-                if npm view "${PKG_NAME}@${PKG_VERSION}" version >/dev/null 2>&1; then
-
-                    echo "Version ${PKG_VERSION} already exists in Nexus. Skipping publish."
-
-                else
-
-                    echo
+                
                     echo "======================================"
                     echo "Publishing to Nexus"
                     echo "======================================"

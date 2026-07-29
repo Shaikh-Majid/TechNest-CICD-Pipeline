@@ -292,7 +292,7 @@ else
 fi
 
 echo
-npm install --prefer-offline --no-audit --no-fund
+npm install --omit=dev
 
 echo
 echo "========================================="
@@ -491,89 +491,73 @@ stage('Build & Package') {
 }
 stage('Upload to Nexus') {
 
-     agent{ label 'docker-server' }
+    agent { label 'docker-server' }
+
+    when {
+        expression {
+            return params.UPLOAD_TO_NEXUS
+        }
+    }
 
     steps {
 
         dir(APP_DIR) {
 
-            script {
+            withCredentials([
+                usernamePassword(
+                    credentialsId: 'nexus-jenkins',
+                    usernameVariable: 'NEXUS_USER',
+                    passwordVariable: 'NEXUS_PASS'
+                )
+            ]) {
 
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'nexus-jenkins',
-                        usernameVariable: 'NEXUS_USER',
-                        passwordVariable: 'NEXUS_PASS'
-                    )
-                ]) {
+                sh '''
+                set -eux
 
-                    retry(3) {
+                echo "======================================"
+                echo "Preparing npm registry configuration"
+                echo "======================================"
 
-                        sh '''
-                        set -eux
+                test -f package.json
 
-                        echo "======================================"
-                        echo "Uploading Artifacts to Nexus"
-                        echo "======================================"
+                PKG_NAME="$(node -p "require('./package.json').name")"
+                PKG_VERSION="$(node -p "require('./package.json').version")"
 
-                        ARTIFACT_NAME="${APP_NAME}-${IMAGE_TAG}.tar.gz"
+                echo "Package : ${PKG_NAME}@${PKG_VERSION}"
 
-                        echo
-                        echo "Artifacts:"
-                        ls -lh dist/
+                cat > .npmrc <<EOF
+registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
+always-auth=true
+//localhost:8081/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
+//localhost:8081/repository/${NEXUS_NPM_REPO}/:_password=$(printf "%s" "${NEXUS_PASS}" | base64 -w0)
+//localhost:8081/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
+EOF
 
-                        for f in \
-                            "dist/${ARTIFACT_NAME}" \
-                            "dist/${ARTIFACT_NAME}.sha256"
-                        do
+                echo
+                echo "======================================"
+                echo "Checking for existing version in Nexus"
+                echo "======================================"
 
-                            test -f "$f"
+                if npm view "${PKG_NAME}@${PKG_VERSION}" version >/dev/null 2>&1; then
 
-                            echo
-                            echo "Uploading $(basename "$f")"
+                    echo "Version ${PKG_VERSION} already exists in Nexus. Skipping publish."
 
-                            HTTP_CODE=$(
-                                curl \
-                                    --silent \
-                                    --show-error \
-                                    --write-out "%{http_code}" \
-                                    --output /tmp/nexus_upload.log \
-                                    --user "${NEXUS_USER}:${NEXUS_PASS}" \
-                                    --upload-file "$f" \
-                                    "${NEXUS_URL}/repository/$NEXUS_NPM_REPO/${APP_NAME}/${IMAGE_TAG}/$(basename "$f")"
-                            )
+                else
 
-                            echo "HTTP Status : ${HTTP_CODE}"
+                    echo
+                    echo "======================================"
+                    echo "Publishing to Nexus"
+                    echo "======================================"
 
-                            if [ "${HTTP_CODE}" != "201" ]; then
-                                echo
-                                echo "Upload failed for $(basename "$f")"
+                    npm publish
 
-                                echo
-                                echo "Nexus Response:"
-                                cat /tmp/nexus_upload.log || true
+                    echo
+                    echo "Successfully published ${PKG_NAME}@${PKG_VERSION}"
 
-                                exit 1
-                            fi
+                fi
+                '''
 
-                            echo "Successfully uploaded $(basename "$f")"
-
-                        done
-
-                        echo
-                        echo "======================================"
-                        echo "All artifacts uploaded successfully."
-                        echo "======================================"
-
-                        '''
-
-                    }
-
-                    echo "Artifacts published successfully."
-
-                    echo "${NEXUS_URL}/repository/$NEXUS_NPM_REPO/${APP_NAME}/${IMAGE_TAG}/"
-
-                }
+                echo "Registry: ${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/"
 
             }
 
@@ -582,6 +566,18 @@ stage('Upload to Nexus') {
     }
 
     post {
+
+        always {
+
+            dir(APP_DIR) {
+
+                sh '''
+                rm -f .npmrc
+                '''
+
+            }
+
+        }
 
         success {
 

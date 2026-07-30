@@ -590,13 +590,6 @@ post {
             "failure"
         )
     }
-
-    always {
-        cleanWs(
-            deleteDirs: true,
-            notFailBuild: true
-        )
-    }
     
     }
 

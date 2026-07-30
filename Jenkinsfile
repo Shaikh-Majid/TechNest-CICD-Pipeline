@@ -39,9 +39,9 @@ pipeline {
 
         // ---------------- Nexus ----------------
 
-        NEXUS_URL = 'http://nexus.company.internal:8081'
+        NEXUS_URL = 'http://172.31.28.32:8081:8081'
 
-        NEXUS_NPM_REPO = 'PRJ-technest-auth'
+        NEXUS_NPM_REPO = 'technest-auth-hosted'
 
 
         // ---------------- Sonar ----------------
@@ -530,7 +530,8 @@ EOF
                     echo "Publishing to Nexus"
                     echo "======================================"
 
-                    npm publish
+                    npm publish \
+                    --registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
 
                 
                 '''

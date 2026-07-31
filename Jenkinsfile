@@ -39,7 +39,7 @@ pipeline {
 
         // ---------------- Nexus ----------------
 
-        NEXUS_URL = 'http://172.31.18.12:8081'
+        NEXUS_URL = 'http://172.31.28.32:8081'
 
         NEXUS_NPM_REPO = 'technest-auth-hosted'
 

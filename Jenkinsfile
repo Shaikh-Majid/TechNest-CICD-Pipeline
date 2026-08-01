@@ -256,6 +256,9 @@ stage('Install Dependencies') {
                 node --version
                 npm --version
 
+                echo "installing dependencies"
+                npm install --omit=dev           
+
                 echo
                 echo "========================================="
                 echo "Creating .npmrc"
@@ -291,8 +294,6 @@ else
     echo "package-lock.json NOT FOUND"
 fi
 
-echo
-npm install --omit=dev
 
 echo
 echo "========================================="
@@ -497,16 +498,15 @@ stage('Upload to Nexus') {
     }
 
     steps {
-
-        dir(APP_DIR) {
-
-            withCredentials([
+      withCredentials([
                 usernamePassword(
                     credentialsId: 'nexus-jenkins',
                     usernameVariable: 'NEXUS_USER',
                     passwordVariable: 'NEXUS_PASS'
                 )
             ]) {
+
+        dir(APP_DIR) {
 
                 sh '''
                 set -eux
@@ -518,14 +518,12 @@ stage('Upload to Nexus') {
                 test -f package.json
 
                 cat > .npmrc <<EOF
-registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
-always-auth=true
-//${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
-//${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:_password=${NEXUS_PASS}
-//${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
-EOF 
-
-                
+                registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
+                always-auth=true
+                //${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
+                //${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:_password=${NEXUS_PASS}
+                //${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
+                EOF
                     echo "======================================"
                     echo "Publishing to Nexus"
                     echo "======================================"

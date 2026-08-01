@@ -517,21 +517,18 @@ stage('Upload to Nexus') {
 
                 test -f package.json
 
-                cat > .npmrc <<EOF
+                cat > .npmrc <<-EOF
                 registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
                 always-auth=true
                 //${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
                 //${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:_password=${NEXUS_PASS}
                 //${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
                 EOF
-                    echo "======================================"
-                    echo "Publishing to Nexus"
-                    echo "======================================"
+                echo "======================================"
+                echo "Publishing to Nexus"
+                echo "======================================"
 
-                    npm publish \
-                    --registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
-
-                
+                npm publish registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
                 '''
 
                 echo "Registry: ${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/"

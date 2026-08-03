@@ -66,7 +66,7 @@ pipeline {
 
         string(
             name: 'GIT_BRANCH',
-            defaultValue: 'master',
+            defaultValue: 'developer',
             description: 'CI/CD Repository Branch'
         )
 

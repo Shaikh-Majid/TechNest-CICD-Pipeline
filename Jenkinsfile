@@ -560,9 +560,6 @@ stage('Upload to Nexus') {
                 }
             }
         }
-
-}
-
 }
 post {
 

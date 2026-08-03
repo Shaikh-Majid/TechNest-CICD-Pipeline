@@ -537,6 +537,29 @@ stage('Upload to Nexus') {
         }
 
     }
+      stage('Build Docker Image') {
+            steps {
+                script {
+                    timeout(time: 20, unit: 'MINUTES') {
+                        sh """
+                            docker build \
+                                --build-arg BUILD_DATE=\$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+                                --build-arg VCS_REF=${GIT_SHA_SHORT} \
+                                --build-arg APP_VERSION=${APP_VERSION} \
+                                --cache-from ${ECR_REPO}:cache \
+                                --build-arg BUILDKIT_INLINE_CACHE=1 \
+                                --label org.opencontainers.image.revision=${GIT_SHA_SHORT} \
+                                --label org.opencontainers.image.version=${APP_VERSION} \
+                                --label org.opencontainers.image.source=${env.GIT_URL ?: 'github.com/technest/technest'} \
+                                --label org.opencontainers.image.created=\$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+                                -t ${IMAGE_FULL} \
+                                -f Dockerfile \
+                                .
+                        """
+                    }
+                }
+            }
+        }
 
 }
 

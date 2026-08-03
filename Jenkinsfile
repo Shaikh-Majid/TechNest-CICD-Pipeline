@@ -556,7 +556,6 @@ stage('Upload to Nexus') {
                                     --build-arg BUILD_DATE=\$(date -u +'%Y-%m-%dT%H:%M:%SZ')\
                                     --build-arg APP_VERSION=${env.APP_VERSION} \
                                     --cache-from ${ECR_REPO}:cache \
-                                    --build-arg BUILDKIT_INLINE_CACHE=1 \
                                     -t ${env.IMAGE_FULL} \
                                     -f Dockerfile \
                                     .

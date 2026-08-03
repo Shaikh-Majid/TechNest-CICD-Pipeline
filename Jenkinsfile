@@ -546,7 +546,9 @@ stage('Upload to Nexus') {
 
     }
 }
-      stage('Build Docker Image') {
+         stage('AWS Check and Docker Build'){
+            parallel{
+            stage('Build Docker Image') {
             steps {
                 dir(APP_DIR) {
         
@@ -569,6 +571,15 @@ stage('Upload to Nexus') {
                 }
             }
         }
+        stage('Test AWS Plugin'){
+            steps {
+                withAWS(credentials: 'aws-ecr-credentials', region: 'ap-south-1') {
+                    sh 'env | grep AWS'
+                }
+            }
+        }
+    }
+}
       stage('Push to ECR') {
           
             steps {

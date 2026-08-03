@@ -64,6 +64,10 @@ pipeline {
         // ---------------- Docker / ECR ----------------
 
         ECR_REPO = 'ecr'   // TODO: set to the ECR repository URI, e.g. 123456789012.dkr.ecr.ap-south-1.amazonaws.com/technest
+
+        AWS_REGION = 'us-east-1'   // TODO: set to the AWS region hosting the ECR repository
+
+        ECR_REGISTRY = '123456789012.dkr.ecr.ap-south-1.amazonaws.com'   // TODO: set to the ECR registry host, e.g. <account-id>.dkr.ecr.<region>.amazonaws.com
     }
 
     parameters {
@@ -559,6 +563,46 @@ stage('Upload to Nexus') {
                                     -t ${env.IMAGE_FULL} \
                                     -f Dockerfile \
                                     .
+                            """
+                        }
+                    }
+                }
+            }
+        }
+      stage('Push to ECR') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'developer'
+                }
+                beforeAgent true
+            }
+            steps {
+                script {
+                    withCredentials([
+                        [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-ecr-credentials']
+                    ]) {
+                        retry(3) {
+                            sh """
+                                set -eu
+                                aws ecr get-login-password --region ${AWS_REGION} \
+                                    | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+
+                                # Create the repo on first run; harmless afterwards.
+                                aws ecr describe-repositories \
+                                    --repository-names ${APP_NAME} \
+                                    --region ${AWS_REGION} >/dev/null 2>&1 \
+                                || aws ecr create-repository \
+                                    --repository-name ${APP_NAME} \
+                                    --region ${AWS_REGION} \
+                                    --image-scanning-configuration scanOnPush=true \
+                                    --image-tag-mutability IMMUTABLE \
+                                    --encryption-configuration encryptionType=AES256
+
+                                docker push ${IMAGE_FULL}
+
+                                docker tag ${IMAGE_FULL} ${ECR_REPO}:cache
+                                docker push ${ECR_REPO}:cache
                             """
                         }
                     }

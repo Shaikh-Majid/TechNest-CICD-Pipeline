@@ -570,13 +570,7 @@ stage('Upload to Nexus') {
             }
         }
       stage('Push to ECR') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'developer'
-                }
-                beforeAgent true
-            }
+          
             steps {
                 script {
                     withCredentials([

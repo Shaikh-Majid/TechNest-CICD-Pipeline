@@ -537,7 +537,9 @@ stage('Upload to Nexus') {
         }
 
     }
+}
       stage('Build Docker Image') {
+           agent{ label 'kube_node' }
             steps {
                 script {
                     timeout(time: 20, unit: 'MINUTES') {
@@ -560,7 +562,7 @@ stage('Upload to Nexus') {
                 }
             }
         }
-}
+ }
 post {
 
     success {
@@ -578,7 +580,6 @@ post {
     }
     
     }
-
 }
 
 /*def sendNotification(String message, String status) {

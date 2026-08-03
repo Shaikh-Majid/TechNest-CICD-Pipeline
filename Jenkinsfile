@@ -63,7 +63,7 @@ pipeline {
 
         // ---------------- Docker / ECR ----------------
 
-        ECR_REPO = 'ECR'   // TODO: set to the ECR repository URI, e.g. 123456789012.dkr.ecr.ap-south-1.amazonaws.com/technest
+        ECR_REPO = 'ecr'   // TODO: set to the ECR repository URI, e.g. 123456789012.dkr.ecr.ap-south-1.amazonaws.com/technest
     }
 
     parameters {
@@ -543,10 +543,9 @@ stage('Upload to Nexus') {
     }
 }
       stage('Build Docker Image') {
-           agent{ label 'kube_node' }
             steps {
                 dir(APP_DIR) {
-                   unstash 'source'
+        
                     script {
                         
                         env.IMAGE_FULL = "${ECR_REPO}:${env.IMAGE_TAG}"

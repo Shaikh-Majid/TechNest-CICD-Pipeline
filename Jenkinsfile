@@ -39,8 +39,8 @@ pipeline {
 
         // ---------------- Nexus ----------------
 
-        NEXUS_URL = 'http://172.31.28.32:8081'
-
+        NEXUS_URL = 'http://13.207.180.59:8081'
+        NEXUS_URI = '13.207.180.59'
         NEXUS_NPM_REPO = 'technest-auth-hosted'
 
 
@@ -240,7 +240,7 @@ stage('Install Dependencies') {
 
             withCredentials([
                 usernamePassword(
-                    credentialsId: 'jenkins-cred',
+                    credentialsId: 'nexus-admin',
                     usernameVariable: 'NEXUS_USER',
                     passwordVariable: 'NEXUS_PASS'
                 )
@@ -267,12 +267,12 @@ stage('Install Dependencies') {
                 cat > .npmrc <<EOF
 registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
 always-auth=true
-//${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
-//${NEXUS_URL}repository/${NEXUS_NPM_REPO}/:_password=$(printf "%s" "${NEXUS_PASS}" | base64 -w0)
-//${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
+//${NEXUS_URI}/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
+//${NEXUS_URI}/repository/${NEXUS_NPM_REPO}/:_auth=$(printf "%s" "${NEXUS_PASS}" | base64 -w0)
 EOF
 
 echo
+cat .npmrc
 echo "========================================="
 echo "Installing Dependencies"
 echo "========================================="
@@ -307,17 +307,6 @@ npm list --depth=0 || true
     }
 
     post {
-
-        always {
-
-            dir(APP_DIR) {
-
-                sh '''
-                rm -f .npmrc
-                '''
-            }
-
-        }
 
         success {
 
@@ -500,7 +489,7 @@ stage('Upload to Nexus') {
     steps {
       withCredentials([
                 usernamePassword(
-                    credentialsId: 'nexus-jenkins',
+                    credentialsId: 'nexus-admin',
                     usernameVariable: 'NEXUS_USER',
                     passwordVariable: 'NEXUS_PASS'
                 )
@@ -510,25 +499,7 @@ stage('Upload to Nexus') {
 
                 sh '''
                 set -eux
-
-                echo "======================================"
-                echo "Preparing npm registry configuration"
-                echo "======================================"
-
-                test -f package.json
-
-                cat > .npmrc <<-EOF
-                registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
-                always-auth=true
-                //${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
-                //${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:_password=${NEXUS_PASS}
-                //${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/:email=jenkins@example.com
-                EOF
-                echo "======================================"
-                echo "Publishing to Nexus"
-                echo "======================================"
-
-                npm publish registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
+                npm publish --registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
                 '''
 
                 echo "Registry: ${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/"
@@ -646,3 +617,4 @@ body: """
         attachLog: true
     )
 }
+

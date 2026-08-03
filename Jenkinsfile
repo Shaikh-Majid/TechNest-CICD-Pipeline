@@ -40,7 +40,6 @@ pipeline {
         // ---------------- Nexus ----------------
 
         NEXUS_URL = 'http://13.207.180.59:8081'
-        NEXUS_URI = '13.207.180.59'
         NEXUS_NPM_REPO = 'technest-auth-hosted'
 
 
@@ -264,11 +263,12 @@ stage('Install Dependencies') {
                 echo "Creating .npmrc"
                 echo "========================================="
 
+                NEXUS_HOST_PORT="${NEXUS_URL#http://}"
+
                 cat > .npmrc <<EOF
 registry=${NEXUS_URL}/repository/${NEXUS_NPM_REPO}/
 always-auth=true
-//${NEXUS_URI}/repository/${NEXUS_NPM_REPO}/:username=${NEXUS_USER}
-//${NEXUS_URI}/repository/${NEXUS_NPM_REPO}/:_auth=$(printf "%s" "${NEXUS_PASS}" | base64 -w0)
+//${NEXUS_HOST_PORT}/repository/${NEXUS_NPM_REPO}/:_auth=$(printf "%s:%s" "${NEXUS_USER}" "${NEXUS_PASS}" | base64 -w0)
 EOF
 
 echo

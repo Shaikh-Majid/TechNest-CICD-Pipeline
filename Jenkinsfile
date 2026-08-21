@@ -487,6 +487,26 @@ stage('Build & Package') {
     }
 
 }
+stage('Trigger Subpipeline') {
+    steps {
+        script {
+            echo "Triggering subpipeline job 'subpipeline-job'"
+            build job: 'subpipeline-job', wait: true, parameters: [
+                [$class: 'StringParameterValue', name: 'PARENT_JOB', value: "${env.JOB_NAME}"],
+                [$class: 'StringParameterValue', name: 'PARENT_BUILD_NUMBER', value: "${env.BUILD_NUMBER}"]
+            ]
+        }
+    }
+    post {
+        success {
+            echo 'Subpipeline completed successfully.'
+        }
+        failure {
+            echo 'Subpipeline failed.'
+        }
+    }
+}
+
 stage('Upload to Nexus') {
     when {
         expression {

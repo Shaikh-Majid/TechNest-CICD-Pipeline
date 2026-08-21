@@ -1,0 +1,29 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'PARENT_JOB', defaultValue: '', description: 'Parent job name')
+        string(name: 'PARENT_BUILD_NUMBER', defaultValue: '', description: 'Parent build number')
+    }
+
+    stages {
+        stage('Sub Build') {
+            steps {
+                echo "Running subpipeline triggered by ${params.PARENT_JOB} #${params.PARENT_BUILD_NUMBER}"
+                sh 'echo "Subpipeline: building..."'
+                sh 'sleep 1'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Subpipeline completed successfully.'
+        }
+        failure {
+            echo 'Subpipeline failed.'
+        }
+    }
+}
